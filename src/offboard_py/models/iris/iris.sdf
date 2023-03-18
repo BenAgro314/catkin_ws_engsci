@@ -555,20 +555,5 @@
       </control_channels>
     </plugin>
     <static>0</static>
-    <include>
-      <uri>model://T265</uri>
-    <pose>0.12 0 0 0 0 0</pose>
-    </include>
-    <joint name="depth_camera_joint" type="revolute">
-      <child>T265::t265_base_link</child>
-      <parent>base_link</parent>
-      <axis>
-        <xyz>0 0 1</xyz>
-        <limit>
-          <upper>0</upper>
-          <lower>0</lower>
-        </limit>
-      </axis>
-    </joint>
   </model>
 </sdf>
