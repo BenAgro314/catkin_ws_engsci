@@ -146,8 +146,8 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
   CMakeLists.txt:24 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
 [0m
-[0m** WARNING ** io features related to libusb-1.0 will be disabled[0m
 [36m--[0m Found libusb-1.0: /usr/include
+[0m** WARNING ** io features related to libusb-1.0 will be disabled[0m
 [33mCMake Warning (dev) at /usr/share/cmake-3.25/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
   The package name passed to `find_package_handle_standard_args` (USB_10)
   does not match the name of the calling package (OpenNI).  This can lead to
