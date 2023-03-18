@@ -1,0 +1,8 @@
+prefix=/home/agrobenj/catkin_ws/devel/.private/rob521_lab2
+
+Name: rob521_lab2
+Description: Description of rob521_lab2
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

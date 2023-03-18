@@ -1,0 +1,8 @@
+prefix=/home/agrobenj/catkin_ws/install
+
+Name: rob521_lab3
+Description: Description of rob521_lab3
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

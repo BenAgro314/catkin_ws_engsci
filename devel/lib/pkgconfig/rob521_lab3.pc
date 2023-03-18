@@ -1,0 +1,1 @@
+/home/agrobenj/catkin_ws/devel/.private/rob521_lab3/lib/pkgconfig/rob521_lab3.pc

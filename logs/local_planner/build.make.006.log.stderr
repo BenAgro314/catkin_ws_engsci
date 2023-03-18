@@ -1,0 +1,7 @@
+[01m[K/home/agrobenj/catkin_ws/src/avoidance/local_planner/src/nodes/local_planner_nodelet.cpp:[m[K In member function ‘[01m[Kvoid avoidance::LocalPlannerNodelet::InitializeNodelet()[m[K’:
+[01m[K/home/agrobenj/catkin_ws/src/avoidance/local_planner/src/nodes/local_planner_nodelet.cpp:87:42:[m[K [01;31m[Kerror: [m[K‘[01m[Kobst_free_path[m[K’ was not declared in this scope
+   87 |   mavros_obstacle_free_path_pub_.publish([01;31m[Kobst_free_path[m[K);
+      |                                          [01;31m[K^~~~~~~~~~~~~~[m[K
+make[2]: *** [CMakeFiles/local_planner_nodelet.dir/build.make:76: CMakeFiles/local_planner_nodelet.dir/src/nodes/local_planner_nodelet.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:3616: CMakeFiles/local_planner_nodelet.dir/all] Error 2
+make: *** [Makefile:146: all] Error 2

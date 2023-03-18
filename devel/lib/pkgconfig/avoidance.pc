@@ -1,0 +1,1 @@
+/home/agrobenj/catkin_ws/devel/.private/avoidance/lib/pkgconfig/avoidance.pc
