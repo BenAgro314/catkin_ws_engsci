@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-from typing import List, Optional 
+from typing import List, Optional
+from offboard_py.scripts.local_planner import LocalPlanner, LocalPlannerType 
 
 #from offboard_py.scripts.path_planner import find_traj
 from offboard_py.scripts.utils import Colors, are_angles_close, get_config_from_pose_stamped, pose_stamped_to_transform_stamped, shortest_signed_angle
@@ -14,8 +15,6 @@ from std_srvs.srv import Empty, EmptyResponse
 from nav_msgs.msg import Path
 import message_filters
 import tf2_ros
-
-INCLUDE_YAW=False
 
 class RobDroneControl():
 
@@ -37,7 +36,6 @@ class RobDroneControl():
 
         # TODO: make these arguments / config files
         self.waypoint_trans_ths = 0.5 # used in pose_is_close
-        self.waypoint_yaw_ths = 0.16 # 10 deg
         self.on_ground_ths = 0.2
         self.launch_height = 1.6475 # check this
         self.land_height = 0.05
@@ -49,6 +47,8 @@ class RobDroneControl():
             [-3.0, 3.0], # y
             [0.0, 3.0], # z
         ]
+
+        self.local_planner = LocalPlanner(mode=LocalPlannerType.NON_HOLONOMIC)
 
         self.state_sub = rospy.Subscriber("mavros/state", State, callback = self.state_cb)
         #self.setpoint_position_pub = rospy.Publisher("mavros/setpoint_position/local", PoseStamped, queue_size=10)
@@ -212,30 +212,12 @@ class RobDroneControl():
             return 
 
         self.waypoint_queue_lock.acquire()
-        old_yaw = 0
         for i, pose in enumerate(self.received_waypoints.poses):
-            next_pose = None
-            if i < len(self.received_waypoints.poses) - 1:
-                next_pose = self.received_waypoints.poses[i+1]
             # 1. convert the pose into a numpy array to transform it
             t_global_basei = pose_to_numpy(pose)
             # 2. transform it into the map frame
             t_map_basei = self.t_map_global @ t_global_basei
-            if INCLUDE_YAW:
-                # 3. Set goal yaws
-                if next_pose is not None:
-                    t_global_baseip1 = pose_to_numpy(next_pose)
-                    t_map_baseip1 = self.t_map_global @ t_global_baseip1
-                    vec = t_map_baseip1[:3, -1] - t_map_basei[:3, -1]
-                    goal_yaw = np.arctan2(vec[1], vec[0])
-                    old_yaw = goal_yaw
-                else:
-                    goal_yaw = old_yaw
-                t_map_basei[0,0] = np.cos(goal_yaw)
-                t_map_basei[0,1] = -np.sin(goal_yaw)
-                t_map_basei[1,0] = np.sin(goal_yaw)
-                t_map_basei[1,1] = np.cos(goal_yaw)
-            # 4. turn back into a tran
+            # 3. turn back into a tran
             new_pose = numpy_to_pose_stamped(t_map_basei, self.current_pose.header.frame_id)
             self.waypoint_queue.append(new_pose)
             self.waypoint_queue_num.release() # semaphor.up
@@ -265,27 +247,20 @@ class RobDroneControl():
         cfg1 = get_config_from_pose_stamped(pose1)
         cfg2 = get_config_from_pose_stamped(pose2)
         trans_is_close =  np.linalg.norm(cfg1[:3] - cfg2[:3]) < self.waypoint_trans_ths
-        yaw_is_close = True
-        if INCLUDE_YAW:
-            yaw_is_close = are_angles_close(cfg1[-1], cfg2[-1], self.waypoint_yaw_ths)
         #print(f"Trans is close: {trans_is_close}. Yaw is close: {yaw_is_close}")
-        return trans_is_close and yaw_is_close
+        return trans_is_close
 
     def compute_twist_command(self):
         if self.current_waypoint is None:
             return Twist()
-        goal_cfg = get_config_from_pose_stamped(self.current_waypoint)
-        curr_cfg = get_config_from_pose_stamped(self.current_pose)
-        vel = np.clip(goal_cfg[:3] - curr_cfg[:3], a_min = -self.max_speed, a_max = self.max_speed)
-        res = Twist()
-        res.linear.x = vel[0]
-        res.linear.y = vel[1]
-        res.linear.z = vel[2]
-        if INCLUDE_YAW:
-            trans_is_close =  np.linalg.norm(goal_cfg[:3] - curr_cfg[:3]) < 0.15
-            if trans_is_close:
-                angular_disp = shortest_signed_angle(curr_cfg[-1], goal_cfg[-1])
-                res.angular.z = np.clip(angular_disp, a_min = -self.max_rot_speed, a_max = self.max_rot_speed)
+        res = self.local_planner.get_twist(self.current_pose, self.current_waypoint)
+        #goal_cfg = get_config_from_pose_stamped(self.current_waypoint)
+        #curr_cfg = get_config_from_pose_stamped(self.current_pose)
+        #vel = np.clip(goal_cfg[:3] - curr_cfg[:3], a_min = -self.max_speed, a_max = self.max_speed)
+        #res = Twist()
+        #res.linear.x = vel[0]
+        #res.linear.y = vel[1]
+        #res.linear.z = vel[2]
         return res
 
     def run(self):

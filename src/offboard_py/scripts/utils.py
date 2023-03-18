@@ -1,8 +1,10 @@
 import rospy
 import numpy as np
 from tf.transformations import quaternion_matrix, quaternion_from_matrix
-from geometry_msgs.msg import PoseStamped, TransformStamped, Pose
+import tf_conversions
+from geometry_msgs.msg import PoseStamped, TransformStamped, Pose, Quaternion
 import math
+from nav_msgs.msg import Path
 
 class Colors:
     """
@@ -240,3 +242,26 @@ def config_to_transformation_matrix(x, y, z, yaw):
     ])
 
     return T
+
+def se2_pose_list_to_path(pose_list, ref_frame):
+    # convert a list of poses to a path
+    path = Path()
+    path.header.frame_id = ref_frame
+    for pose in pose_list:
+        ros_pose = PoseStamped()
+        ros_pose.pose.position.x = pose[0]
+        ros_pose.pose.position.y = pose[1]
+        ros_pose.pose.orientation = ros_quat_from_euler([0, 0, pose[2]])
+        ros_pose.header.frame_id = ref_frame
+        path.poses.append(ros_pose)
+    return path
+
+def ros_quat_from_euler(e):
+    # get a ROS XYZW quaternion from an SXYZ euler
+    np_q = tf_conversions.transformations.quaternion_from_euler(*e)
+    return ros_q_from_np_q(np_q)
+
+def ros_q_from_np_q(np_q):
+    q = Quaternion()
+    q.x = np_q[0]; q.y = np_q[1]; q.z = np_q[2]; q.w = np_q[3]
+    return q
