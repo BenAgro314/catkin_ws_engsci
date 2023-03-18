@@ -1,0 +1,155 @@
+<sdf version='1.7'>
+  <model name='T265'>
+    <link name='t265_base_link'>
+      <inertial>
+        <pose>0 0 0 0 -0 0</pose>
+        <mass>0.01</mass>
+        <inertia>
+          <ixx>0.001</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.001</iyy>
+          <iyz>0</iyz>
+          <izz>0.001</izz>
+        </inertia>
+      </inertial>
+      <collision name='t265_base_link_fixed_joint_lump__t265_pose_frame_collision'>
+        <pose>0 0 0 0 -0 0</pose>
+        <geometry>
+          <box>
+            <size>0.013 0.108 0.024</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name='t265_base_link_fixed_joint_lump__t265_pose_frame_visual'>
+        <pose>0 0 0 1.57 -0 1.57</pose>
+        <geometry>
+          <mesh>
+            <scale>0.001 0.001 0.001</scale>
+            <uri>model://T265/realsense_t265.stl</uri>
+          </mesh>
+        </geometry>
+      </visual>
+      <sensor name='camera' type='wideanglecamera'>
+        <camera>
+          <horizontal_fov>6.283</horizontal_fov>
+          <image>
+            <width>800</width>
+            <height>848</height>
+          </image>
+          <clip>
+            <near>0.1</near>
+            <far>100</far>
+          </clip>
+          <lens>
+            <type>custom</type>
+            <custom_function>
+              <c1>1.05</c1>
+              <c2>4</c2>
+              <f>1</f>
+              <fun>tan</fun>
+            </custom_function>
+            <scale_to_hfov>1</scale_to_hfov>
+            <cutoff_angle>3.1415</cutoff_angle>
+            <env_texture_size>512</env_texture_size>
+          </lens>
+          <always_on>1</always_on>
+          <update_rate>30</update_rate>
+        </camera>
+        <plugin name='camera_controller' filename='libgazebo_ros_camera.so'>
+          <alwaysOn>1</alwaysOn>
+          <updateRate>30</updateRate>
+          <cameraName>camera/fisheye1</cameraName>
+          <imageTopicName>image_raw</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>t265_fisheye1_optical_frame</frameName>
+          <hackBaseline>0.07</hackBaseline>
+          <distortionK1>-0.007419134024530649</distortionK1>
+          <distortionK2>0.041209351271390915</distortionK2>
+          <distortionK3>-0.03811917081475258</distortionK3>
+          <distortionT1>0.006366158835589886</distortionT1>
+          <distortionT2>0.0</distortionT2>
+          <CxPrime>416.00531005859375</CxPrime>
+          <Cx>16.00531005859375</Cx>
+          <Cy>403.38909912109375</Cy>
+        </plugin>
+        <pose>0.01 0.042 0 0 -0 0</pose>
+      </sensor>
+      <sensor name='camera' type='wideanglecamera'>
+        <camera>
+          <horizontal_fov>6.283</horizontal_fov>
+          <image>
+            <width>800</width>
+            <height>848</height>
+          </image>
+          <clip>
+            <near>0.1</near>
+            <far>100</far>
+          </clip>
+          <lens>
+            <type>custom</type>
+            <custom_function>
+              <c1>1.05</c1>
+              <c2>4</c2>
+              <f>1</f>
+              <fun>tan</fun>
+            </custom_function>
+            <scale_to_hfov>1</scale_to_hfov>
+            <cutoff_angle>3.1415</cutoff_angle>
+            <env_texture_size>512</env_texture_size>
+          </lens>
+          <always_on>1</always_on>
+          <update_rate>30</update_rate>
+        </camera>
+        <plugin name='camera_controller' filename='libgazebo_ros_camera.so'>
+          <alwaysOn>1</alwaysOn>
+          <updateRate>30</updateRate>
+          <cameraName>camera/fisheye2</cameraName>
+          <imageTopicName>image_raw</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>t265_fisheye2_optical_frame</frameName>
+          <hackBaseline>0.07</hackBaseline>
+          <distortionK1>-0.007419134024530649</distortionK1>
+          <distortionK2>0.041209351271390915</distortionK2>
+          <distortionK3>-0.03811917081475258</distortionK3>
+          <distortionT1>0.006366158835589886</distortionT1>
+          <distortionT2>0.0</distortionT2>
+          <CxPrime>416.00531005859375</CxPrime>
+          <Cx>16.00531005859375</Cx>
+          <Cy>403.38909912109375</Cy>
+        </plugin>
+        <pose>0.01 -0.022 0 0 -0 0</pose>
+      </sensor>
+      <gravity>1</gravity>
+      <sensor name='t265_imu' type='imu'>
+        <always_on>1</always_on>
+        <update_rate>30</update_rate>
+        <visualize>0</visualize>
+        <plugin name='imu_plugin' filename='libgazebo_ros_imu_sensor.so'>
+          <topicName>t265/gyro/sample</topicName>
+          <bodyName>t265_pose_frame</bodyName>
+          <updateRateHZ>30</updateRateHZ>
+          <gaussianNoise>0.000001</gaussianNoise>
+          <xyzOffset>0 0 0</xyzOffset>
+          <rpyOffset>0 0 0</rpyOffset>
+          <frameName>t265_link</frameName>
+        </plugin>
+        <pose>0 0 0 0 -0 0</pose>
+      </sensor>
+    </link>
+    <static>0</static>
+    <plugin name='p3d_base_controller' filename='libgazebo_ros_p3d.so'>
+      <alwaysOn>1</alwaysOn>
+      <updateRate>30</updateRate>
+      <topicName>camera/odom/sample</topicName>
+      <gaussianNoise>0.001</gaussianNoise>
+      <frameName>map</frameName>
+      <xyzOffsets>0 0 0</xyzOffsets>
+      <rpyOffsets>0 0 0</rpyOffsets>
+      <bodyName>t265_base_link</bodyName>
+      <xyzOffset>0 0 0</xyzOffset>
+      <rpyOffset>0 -0 0</rpyOffset>
+      <ignition::corrected_offsets>1</ignition::corrected_offsets>
+    </plugin>
+  </model>
+</sdf>

@@ -1,9 +1,13 @@
 <?xml version="1.0"?>
 <launch>
 	<arg name="world" default="$(find offboard_py)/worlds/myhal_sim.world"/>
+	<arg name="sdf" default="$(find offboard_py)/models/iris/iris.sdf"/>
+	<!--arg name="vehicle" default="iris"/-->
 	<!-- Include the MAVROS node with SITL and Gazebo -->
 	<include file="$(find px4)/launch/mavros_posix_sitl.launch">
 		<arg name="world" value="$(arg world)"/>	
+		<arg name="sdf" value="$(arg sdf)"/>	
+		<!--arg name="vehicle" value="$(arg vehicle)"/-->	
 		<arg name="x" value="0.3"/>
 		<arg name="y" value="0.1"/>
 		<arg name="z" value="0"/>
