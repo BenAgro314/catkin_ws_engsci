@@ -10,6 +10,7 @@ Panels:
         - /Pose2
         - /Odometry1
         - /Odometry2
+        - /Image1
       Splitter Ratio: 0.5
     Tree Height: 606
   - Class: rviz/Selection
@@ -181,7 +182,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 100
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -196,12 +197,12 @@ Visualization Manager:
         Shaft Length: 1
         Shaft Radius: 0.05000000074505806
         Value: Arrow
-      Topic: /t265/odom/sample
+      Topic: /camera/odom/sample
       Unreliable: false
-      Value: true
+      Value: false
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /t265/fisheye2/image_raw
+      Image Topic: /camera/fisheye2/image_raw
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -239,7 +240,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 6.1401166915893555
+      Distance: 8.626421928405762
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -247,17 +248,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 1.3079941272735596
-        Y: -0.0029540956020355225
-        Z: 0.42755815386772156
+        X: 0.3801642954349518
+        Y: 0.6400006413459778
+        Z: 0.6972589492797852
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4953984022140503
+      Pitch: 0.6303982734680176
       Target Frame: <Fixed Frame>
-      Yaw: 0.8353471159934998
+      Yaw: 0.6103472113609314
     Saved: ~
 Window Geometry:
   Camera:

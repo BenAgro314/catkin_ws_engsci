@@ -32,7 +32,8 @@
       </visual>
       <sensor name='camera' type='wideanglecamera'>
         <camera>
-          <horizontal_fov>6.283</horizontal_fov>
+          <!--horizontal_fov>6.283</horizontal_fov-->
+          <horizontal_fov>2.87979</horizontal_fov>
           <image>
             <width>800</width>
             <height>848</height>
@@ -77,7 +78,8 @@
       </sensor>
       <sensor name='camera' type='wideanglecamera'>
         <camera>
-          <horizontal_fov>6.283</horizontal_fov>
+          <!--horizontal_fov>6.283</horizontal_fov-->
+          <horizontal_fov>2.87979</horizontal_fov>
           <image>
             <width>800</width>
             <height>848</height>
