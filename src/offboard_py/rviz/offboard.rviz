@@ -11,6 +11,7 @@ Panels:
         - /Odometry1
         - /Odometry2
         - /Image1
+        - /Marker1
       Splitter Ratio: 0.5
     Tree Height: 784
   - Class: rviz/Selection
@@ -123,6 +124,7 @@ Visualization Manager:
       Unreliable: false
       Value: false
       Visibility:
+        "": true
         Grid: true
         Image: true
         Odometry: true
@@ -211,6 +213,14 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /sphere_marker
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
