@@ -35,7 +35,7 @@ class RobDroneControl():
         self.received_waypoints: Optional[PoseArray] = None # PoseArray
 
         # TODO: make these arguments / config files
-        self.waypoint_trans_ths = 0.5 # used in pose_is_close
+        self.waypoint_trans_ths = 0.08 # used in pose_is_close
         self.on_ground_ths = 0.2
         self.launch_height = 1.6475 # check this
         self.land_height = 0.05
@@ -48,7 +48,7 @@ class RobDroneControl():
             [0.0, 3.0], # z
         ]
 
-        self.local_planner = LocalPlanner(mode=LocalPlannerType.NON_HOLONOMIC)
+        self.local_planner = LocalPlanner(mode=LocalPlannerType.NON_HOLONOMIC, v_max=self.max_speed)
 
         self.state_sub = rospy.Subscriber("mavros/state", State, callback = self.state_cb)
         #self.setpoint_position_pub = rospy.Publisher("mavros/setpoint_position/local", PoseStamped, queue_size=10)
@@ -254,8 +254,8 @@ class RobDroneControl():
         if self.current_waypoint is None:
             return Twist()
         res = self.local_planner.get_twist(self.current_pose, self.current_waypoint)
-        #goal_cfg = get_config_from_pose_stamped(self.current_waypoint)
-        #curr_cfg = get_config_from_pose_stamped(self.current_pose)
+        goal_cfg = get_config_from_pose_stamped(self.current_waypoint)
+        curr_cfg = get_config_from_pose_stamped(self.current_pose)
         #vel = np.clip(goal_cfg[:3] - curr_cfg[:3], a_min = -self.max_speed, a_max = self.max_speed)
         #res = Twist()
         #res.linear.x = vel[0]
