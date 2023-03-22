@@ -343,6 +343,7 @@ def transform_twist(twist_b: Twist, t_a_b: np.array):
 def slerp_pose(pose1: Pose, pose2: Pose, timestamp1: rospy.Time, timestamp2: rospy.Time, target_timestamp: rospy.Time, frame_id: str):
     # Calculate the interpolation factor
     t = (target_timestamp - timestamp1).to_sec() / (timestamp2 - timestamp1).to_sec()
+    print(t)
 
     # Interpolate positions using linear interpolation
     position1 = np.array([pose1.position.x, pose1.position.y, pose1.position.z])
@@ -369,3 +370,31 @@ def slerp_pose(pose1: Pose, pose2: Pose, timestamp1: rospy.Time, timestamp2: ros
     interp_pose.pose.orientation.w = interp_quaternion[3]
 
     return interp_pose
+
+def transform_stamped_to_pose_stamped(transform_stamped: TransformStamped):
+    """
+    Converts a geometry_msgs/TransformStamped into a geometry_msgs/PoseStamped.
+
+    Args:
+    transform_stamped (geometry_msgs/TransformStamped): The input TransformStamped to be converted.
+
+    Returns:
+    pose_stamped (geometry_msgs/PoseStamped): The resulting PoseStamped from the given TransformStamped.
+    """
+    pose_stamped = PoseStamped()
+
+    # Copy the header from the TransformStamped to the PoseStamped
+    pose_stamped.header = transform_stamped.header
+
+    # Copy the position from the TransformStamped to the PoseStamped
+    pose_stamped.pose.position.x = transform_stamped.transform.translation.x
+    pose_stamped.pose.position.y = transform_stamped.transform.translation.y
+    pose_stamped.pose.position.z = transform_stamped.transform.translation.z
+
+    # Copy the orientation from the TransformStamped to the PoseStamped
+    pose_stamped.pose.orientation.x = transform_stamped.transform.rotation.x
+    pose_stamped.pose.orientation.y = transform_stamped.transform.rotation.y
+    pose_stamped.pose.orientation.z = transform_stamped.transform.rotation.z
+    pose_stamped.pose.orientation.w = transform_stamped.transform.rotation.w
+
+    return pose_stamped

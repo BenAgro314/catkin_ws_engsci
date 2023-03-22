@@ -3,7 +3,7 @@ from typing import List, Optional
 from offboard_py.scripts.local_planner import LocalPlanner, LocalPlannerType 
 
 #from offboard_py.scripts.path_planner import find_traj
-from offboard_py.scripts.utils import Colors, are_angles_close, get_config_from_pose_stamped, make_sphere_marker, pose_stamped_to_transform_stamped, shortest_signed_angle, slerp_pose, transform_twist
+from offboard_py.scripts.utils import Colors, are_angles_close, get_config_from_pose_stamped, make_sphere_marker, pose_stamped_to_transform_stamped, shortest_signed_angle, slerp_pose, transform_stamped_to_pose_stamped, transform_twist
 from offboard_py.scripts.utils import pose_to_numpy, transform_stamped_to_numpy, pose_stamped_to_numpy, numpy_to_pose_stamped
 from threading import Semaphore, Lock
 import rospy
@@ -76,6 +76,7 @@ class RobDroneControl():
         #self.current_waypoint_pub = rospy.Publisher("rob498/current_waypoint", PoseStamped, queue_size=10)
         self.current_path_pub = rospy.Publisher("rob498/waypoint_queue", Path, queue_size=10)
         self.current_t_map_dots: Optional[PoseStamped] = None
+        self.prev_vicon_pose: Optional[PoseStamped] = None
         self.prev_t_map_dots: Optional[PoseStamped] = None
 
         self.current_state = State()
@@ -105,22 +106,44 @@ class RobDroneControl():
         self.marker_pub.publish(marker)
 
     def vicon_callback(self, vicon_pose: TransformStamped):
+        if self.current_t_map_dots is None or self.prev_t_map_dots is None:
+            return
+        vicon_pose=transform_stamped_to_pose_stamped(vicon_pose)
+        if self.prev_vicon_pose is None:
+            self.prev_vicon_pose = vicon_pose
+            return
+        interp_t_global_dots = False
+        # do as little as possible in the lock
         with self.current_pose_lock:
-            if self.current_t_map_dots is None or self.prev_t_map_dots is None:
-                return
-            # slerp to vicon_pose time
-            t_map_dots = slerp_pose(
-                self.prev_t_map_dots.pose,
-                self.current_t_map_dots.pose,
-                self.prev_t_map_dots.header.stamp,
-                self.current_t_map_dots.header.stamp,
-                vicon_pose.header.stamp,
-                frame_id="map"
+            if vicon_pose.header.stamp > self.current_t_map_dots.header.stamp:
+                interp_time = self.current_t_map_dots.header.stamp
+                pose1 = self.prev_vicon_pose
+                pose2 = vicon_pose
+                interp_t_global_dots = True
+            else:
+                interp_time = vicon_pose.header.stamp
+                pose1 = self.prev_t_map_dots
+                pose2 = self.current_t_map_dots
+                interp_t_global_dots = False
+        # slerp
+        interp_pose = pose_stamped_to_numpy(
+                slerp_pose(
+                pose1.pose,
+                pose2.pose,
+                pose1.header.stamp,
+                pose2.header.stamp,
+                interp_time,
+                frame_id=""
             )
-            t_global_dots = transform_stamped_to_numpy(vicon_pose)
-            #t_global_base = t_global_dots @ self.t_dots_base
-            t_map_dots = pose_stamped_to_numpy(t_map_dots)
-            self.t_map_global = t_map_dots @ np.linalg.inv(t_global_dots)
+        )
+        if interp_t_global_dots:
+            t_global_dots = interp_pose
+            t_map_dots = pose_stamped_to_numpy(self.current_t_map_dots)
+        else:
+            t_global_dots = pose_stamped_to_numpy(vicon_pose)
+            t_map_dots = interp_pose
+        self.t_map_global = t_map_dots @ np.linalg.inv(t_global_dots)
+        self.prev_vicon_pose = vicon_pose
 
     #def synchronized_vicon_callback(self, vicon_pose: TransformStamped, mavros_pose: PoseStamped):
     #    t_global_dots = transform_stamped_to_numpy(vicon_pose)
@@ -149,12 +172,11 @@ class RobDroneControl():
         return res
 
     def pose_cb(self, t_map_base: PoseStamped):
+        t_map_base = pose_stamped_to_numpy(t_map_base)
+        t_map_dots = numpy_to_pose_stamped(t_map_base @ self.t_base_dots, frame_id='map')
         with self.current_pose_lock:
-            if self.current_t_map_dots is not None:
-                self.prev_t_map_dots = deepcopy(self.current_t_map_dots)
-            t_map_base = pose_stamped_to_numpy(t_map_base)
-            t_map_dots = t_map_base @ self.t_base_dots
-            self.current_t_map_dots = numpy_to_pose_stamped(t_map_dots, frame_id="map")
+            self.prev_t_map_dots = self.current_t_map_dots
+            self.current_t_map_dots = t_map_dots
 
     def state_cb(self, msg: State):
         self.current_state = msg
