@@ -28,6 +28,7 @@ class LocalPlanner:
         self.trans_ths = trans_ths
         self.mode=mode
         self.yaw_ths=yaw_ths # 10 deg
+        self.a_max = 0.25
         #self.num_substeps=num_substeps
         #self.horizon=horizon
         #self.local_path_pub = rospy.Publisher('~local_path', Path, queue_size=1)
@@ -118,6 +119,14 @@ class LocalPlanner:
         
         #return control
 
+    def get_speed(self, goal_vec: np.array):
+        return np.clip(np.linalg.norm(goal_vec), a_min=0, a_max=self.v_max)
+        #x = np.linalg.norm(goal_vec)
+        #if x >= (self.v_max**2 / (2 * self.a_max)):
+        #    return self.v_max
+        #else:
+        #    return 2 * self.a_max * x
+
     def get_twist(self, curr_pose: PoseStamped, goal_pose: PoseStamped) -> Twist:
         curr_cfg = get_config_from_pose_stamped(curr_pose)
         goal_cfg = get_config_from_pose_stamped(goal_pose)
@@ -126,8 +135,7 @@ class LocalPlanner:
         # if we are within a ths, use non holonomic control (likely safe)
         if np.linalg.norm(goal_vec) < self.trans_ths or self.mode == LocalPlannerType.NON_HOLONOMIC:
             twist = Twist()
-            if np.linalg.norm(goal_vec) > self.v_max:
-                goal_vec = self.v_max * goal_vec / np.linalg.norm(goal_vec)
+            goal_vec = self.get_speed(goal_vec) * goal_vec / np.linalg.norm(goal_vec)
             twist.linear.x = goal_vec[0]
             twist.linear.y = goal_vec[1]
             twist.linear.z = goal_vec[2]
