@@ -274,11 +274,11 @@ class RobDroneControl():
         self.waypoint_queue_lock.acquire()
         for i, pose in enumerate(self.received_waypoints.poses):
             # 1. convert the pose into a numpy array to transform it
-            t_global_basei = pose_to_numpy(pose)
+            t_global_dotsi = pose_to_numpy(pose)
             # 2. transform it into the map frame
-            t_map_basei = self.t_map_global @ t_global_basei
+            t_map_dotsi = self.t_map_global @ t_global_dotsi
             # 3. turn back into a tran
-            new_pose = numpy_to_pose_stamped(t_map_basei, self.current_t_map_dots.header.frame_id)
+            new_pose = numpy_to_pose_stamped(t_map_dotsi, self.current_t_map_dots.header.frame_id)
 
             new_pose_bottom = deepcopy(new_pose)
             new_pose_bottom.pose.position.z -= self.task_ball_radius / 2
