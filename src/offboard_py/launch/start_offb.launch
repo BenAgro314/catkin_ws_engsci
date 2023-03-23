@@ -2,6 +2,7 @@
 <launch>
 	<arg name="world" default="$(find offboard_py)/worlds/myhal_sim.world"/>
 	<arg name="sdf" default="$(find offboard_py)/models/iris/iris.sdf"/>
+	<!--arg name="sdf" default="$(find offboard_py)/models/iris_with_realsense/iris_with_realsense.sdf"/-->
 	<!--arg name="vehicle" default="iris"/-->
 	<!-- Include the MAVROS node with SITL and Gazebo -->
 	<include file="$(find px4)/launch/mavros_posix_sitl.launch">
