@@ -48,7 +48,10 @@ class LocalPlanner:
         curr_cfg = get_config_from_pose_stamped(t_map_d)
         goal_cfg = get_config_from_pose_stamped(t_map_d_goal)
 
-        error = (goal_cfg - curr_cfg)[:, None]
+        #error = (goal_cfg - curr_cfg)[:, None]
+        pos_error = goal_cfg[:3] - curr_cfg[:3]
+        rot_error = shortest_signed_angle(curr_cfg[3:], goal_cfg[3:])
+        error = np.concatenate((pos_error, rot_error))[:, None]
         proportional = self.kp @ error 
         self.integral = self.integral + error * dt
         self.integral = np.clip(self.integral, -self.max_integral, self.max_integral)

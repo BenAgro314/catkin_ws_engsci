@@ -228,7 +228,7 @@ def shortest_signed_angle(a1, a2):
         float: The shortest signed angle to rotate from a1 to a2 in radians.
     """
     # Compute the difference between the angles, considering the wrap-around at 2*pi
-    diff = math.atan2(math.sin(a2 - a1), math.cos(a2 - a1))
+    diff = np.arctan2(np.sin(a2 - a1), np.cos(a2 - a1))
 
     return diff
 
