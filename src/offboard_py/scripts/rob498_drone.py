@@ -18,6 +18,7 @@ import tf2_ros
 from visualization_msgs.msg import Marker
 
 USE_SLERP=True
+SWEEP_HGT=False
 
 class RobDroneControl():
 
@@ -40,20 +41,14 @@ class RobDroneControl():
 
         # TODO: make these arguments / config files
         self.waypoint_trans_ths = 0.08 # used in pose_is_close
+        self.waypoint_yaw_ths = np.deg2rad(10.0) # used in pose_is_close
         self.on_ground_ths = 0.2
         self.launch_height = 1.6475 # check this
         self.land_height = 0.05
         self.max_speed = 0.5 # m/s
-        #self.max_rot_speed = 0.75 # rad/s
         self.task_ball_radius = 0.15
 
-        self.flight_limits = [
-            [-3.0, 3.0], # x
-            [-3.0, 3.0], # y
-            [0.0, 3.0], # z
-        ]
-
-        self.local_planner = LocalPlanner(mode=LocalPlannerType.NON_HOLONOMIC, v_max=self.max_speed)
+        self.local_planner = LocalPlanner() 
 
         self.state_sub = rospy.Subscriber("mavros/state", State, callback = self.state_cb)
         #self.setpoint_position_pub = rospy.Publisher("mavros/setpoint_position/local", PoseStamped, queue_size=10)
@@ -63,11 +58,6 @@ class RobDroneControl():
 
         self.vicon_sub = rospy.Subscriber("/vicon/ROB498_Drone/ROB498_Drone", TransformStamped, self.vicon_callback)
         self.test_ready = False
-        #self.local_pose_sub_sync = message_filters.Subscriber("mavros/local_position/pose", PoseStamped)
-        #self.vicon_pose_sub = message_filters.Subscriber("/vicon/ROB498_Drone/ROB498_Drone", TransformStamped)
-
-        #self.time_synchronizer = message_filters.TimeSynchronizer([self.vicon_pose_sub, self.local_pose_sub_sync], queue_size=10)
-        #self.time_synchronizer.registerCallback(self.synchronized_vicon_callback)
 
         # global: vicon frame
         # map: the frame used by the px4
@@ -75,7 +65,6 @@ class RobDroneControl():
         self.t_map_global: np.array = np.eye(4) # assume no transformation at first
         
         # for viz / outward coms
-        #self.current_waypoint_pub = rospy.Publisher("rob498/current_waypoint", PoseStamped, queue_size=10)
         self.current_path_pub = rospy.Publisher("rob498/waypoint_queue", Path, queue_size=10)
         self.current_t_map_dots: Optional[PoseStamped] = None
         self.prev_vicon_pose: Optional[PoseStamped] = None
@@ -287,19 +276,24 @@ class RobDroneControl():
             t_map_dotsi = self.t_map_global @ t_global_dotsi
             # 3. turn back into a tran
             new_pose = numpy_to_pose_stamped(t_map_dotsi, self.current_t_map_dots.header.frame_id)
+            
+            if SWEEP_HGT:
+                new_pose_bottom = deepcopy(new_pose)
+                new_pose_bottom.pose.position.z -= self.task_ball_radius / 2
+                self.waypoint_queue.append(new_pose_bottom)
+                self.waypoint_queue_num.release() # semaphor.up
+                self.len_waypoint_queue += 1
 
-            new_pose_bottom = deepcopy(new_pose)
-            new_pose_bottom.pose.position.z -= self.task_ball_radius / 2
-            self.waypoint_queue.append(new_pose_bottom)
-            self.waypoint_queue_num.release() # semaphor.up
-            self.len_waypoint_queue += 1
-
-            new_pose_top = deepcopy(new_pose)
-            new_pose_top.pose.position.z += self.task_ball_radius / 2
-            self.waypoint_queue.append(new_pose_top)
-            #self.waypoint_queue.append(new_pose)
-            self.waypoint_queue_num.release() # semaphor.up
-            self.len_waypoint_queue += 1
+                new_pose_top = deepcopy(new_pose)
+                new_pose_top.pose.position.z += self.task_ball_radius / 2
+                self.waypoint_queue.append(new_pose_top)
+                #self.waypoint_queue.append(new_pose)
+                self.waypoint_queue_num.release() # semaphor.up
+                self.len_waypoint_queue += 1
+            else:
+                self.waypoint_queue.append(new_pose)
+                self.waypoint_queue_num.release() # semaphor.up
+                self.len_waypoint_queue += 1
 
         self.publish_current_queue()
         self.waypoint_queue_lock.release()
@@ -325,8 +319,9 @@ class RobDroneControl():
         cfg1 = get_config_from_pose_stamped(pose1)
         cfg2 = get_config_from_pose_stamped(pose2)
         trans_is_close =  np.linalg.norm(cfg1[:3] - cfg2[:3]) < self.waypoint_trans_ths
+        yaw_is_close = np.linalg.norm(cfg1[3] - cfg2[3]) < self.waypoint_yaw_ths
         #print(f"Trans is close: {trans_is_close}. Yaw is close: {yaw_is_close}")
-        return trans_is_close
+        return trans_is_close and yaw_is_close
 
     def compute_twist_command(self):
         if self.current_waypoint is None:

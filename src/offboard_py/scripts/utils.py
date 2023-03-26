@@ -166,9 +166,9 @@ def get_config_from_pose_stamped(pose_stamped):
     z = pose_stamped.pose.position.z
 
     # Convert the quaternion to Euler angles (roll, pitch, yaw)
-    _, _, yaw = quaternion_to_euler(q.x, q.y, q.z, q.w)
+    roll, pitch, yaw = quaternion_to_euler(q.x, q.y, q.z, q.w)
 
-    return np.array([x, y, z, yaw])
+    return np.array([x, y, z, roll, pitch, yaw])
 
 def quaternion_to_euler(x, y, z, w):
     """

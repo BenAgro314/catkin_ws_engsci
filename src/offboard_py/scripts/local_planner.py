@@ -18,24 +18,58 @@ class LocalPlanner:
     # use trajectory sampling from (v, omega), and select the best one
     # control z independently
 
-    def __init__(self, v_max=0.5, omega_max=1.0, trans_ths=0.15, yaw_ths=0.16, mode=LocalPlannerType.NON_HOLONOMIC):# , num_substeps=10, horizon=1.0):
-        self.v_max = v_max
-        self.omega_max = omega_max
-        self.trans_ths = trans_ths
-        self.yaw_ths=yaw_ths # 10 deg
+    def __init__(self, mode=LocalPlannerType.NON_HOLONOMIC):# , num_substeps=10, horizon=1.0):
+        # e = [dx, dy, dz, droll, dpitch, dyaw].T (6, 1)
+        # position gains
+        self.kp = np.diag([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+        self.ki = np.diag([0.0, 0.0, 0.01, 0.0, 0.0, 0.0])
+        self.kd = np.diag([0.3, 0.3, 0.1, 0.2, 0.2, 0.2])
+
+        self.v_max = np.array([0.5, 0.5, 0.5, 1, 1, 1]).T
+
+        self.prev_time = None
+
+        self.max_integral = np.array([1.0, 1.0, 0.1, 1.0, 1.0, 1.0]).T
+
+
+        self.integral = np.zeros((6, 1))
+        self.previous_error = np.zeros((6, 1))
+
 
     def get_speed(self, goal_vec: np.array):
         return np.clip(np.linalg.norm(goal_vec), a_min=0, a_max=self.v_max)
 
     def get_twist(self, t_map_d: PoseStamped, t_map_d_goal: PoseStamped) -> Twist:
+        if self.prev_time is None:
+            self.prev_time = rospy.Time.now().to_sec()
+            return Twist()
+        dt = rospy.Time.now().to_sec() - self.prev_time
+
         curr_cfg = get_config_from_pose_stamped(t_map_d)
         goal_cfg = get_config_from_pose_stamped(t_map_d_goal)
 
-        goal_vec = goal_cfg[:3] - curr_cfg[:3] # (x, y, z)
+        error = (goal_cfg - curr_cfg)[:, None]
+        proportional = self.kp @ error 
+        self.integral = self.integral + error * dt
+        self.integral = np.clip(self.integral, -self.max_integral, self.max_integral)
+        integral = self.ki @ self.integral
+        derivative = self.kd @ ((error - self.previous_error) / dt)
+
+        velocity = proportional + integral + derivative
+        velocity = np.clip(velocity, -self.v_max, self.v_max)
+
+
         twist_m = Twist()
-        goal_vec = self.get_speed(goal_vec) * goal_vec / np.linalg.norm(goal_vec)
-        twist_m.linear.x = goal_vec[0]
-        twist_m.linear.y = goal_vec[1]
-        twist_m.linear.z = goal_vec[2]
+        twist_m.linear.x = velocity[0,0]
+        twist_m.linear.y = velocity[1,0]
+        twist_m.linear.z = velocity[2,0]
+        twist_m.angular.x = velocity[3,0]
+        twist_m.angular.y = velocity[4,0]
+        twist_m.angular.z = velocity[5,0]
+
         twist_d = transform_twist(twist_m, np.linalg.inv(pose_stamped_to_numpy(t_map_d)))
+
+        self.prev_time = rospy.Time.now().to_sec()
+        self.previous_error=error
+
         return twist_d
