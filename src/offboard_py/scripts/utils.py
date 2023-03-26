@@ -343,6 +343,7 @@ def transform_twist(twist_b: Twist, t_a_b: np.array):
 def slerp_pose(pose1: Pose, pose2: Pose, timestamp1: rospy.Time, timestamp2: rospy.Time, target_timestamp: rospy.Time, frame_id: str):
     # Calculate the interpolation factor
     t = (target_timestamp - timestamp1).to_sec() / (timestamp2 - timestamp1).to_sec()
+    assert t >= 0.0 and t <= 1.0
 
     # Interpolate positions using linear interpolation
     position1 = np.array([pose1.position.x, pose1.position.y, pose1.position.z])
