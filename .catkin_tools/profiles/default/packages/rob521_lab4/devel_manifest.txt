@@ -1,0 +1,5 @@
+rob521_labs/lab4
+/home/agrobenj/catkin_ws/devel/.private/rob521_lab4/cmake.lock /home/agrobenj/catkin_ws/devel/./cmake.lock
+/home/agrobenj/catkin_ws/devel/.private/rob521_lab4/lib/pkgconfig/rob521_lab4.pc /home/agrobenj/catkin_ws/devel/lib/pkgconfig/rob521_lab4.pc
+/home/agrobenj/catkin_ws/devel/.private/rob521_lab4/share/rob521_lab4/cmake/rob521_lab4Config-version.cmake /home/agrobenj/catkin_ws/devel/share/rob521_lab4/cmake/rob521_lab4Config-version.cmake
+/home/agrobenj/catkin_ws/devel/.private/rob521_lab4/share/rob521_lab4/cmake/rob521_lab4Config.cmake /home/agrobenj/catkin_ws/devel/share/rob521_lab4/cmake/rob521_lab4Config.cmake
