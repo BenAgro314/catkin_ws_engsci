@@ -1,0 +1,64 @@
+poses:
+- position:
+    x: 0
+    y: 0
+    z: 1.5
+  orientation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+- position:
+    x: 2
+    y: 2
+    z: 1.5
+  orientation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+- position:
+    x: 2
+    y: -2
+    z: 1.5
+  orientation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+- position:
+    x: -2
+    y: -2
+    z: 1.5
+  orientation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+- position:
+    x: -2
+    y: 2
+    z: 1.5
+  orientation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+- position:
+    x: 2
+    y: 2
+    z: 1.5
+  orientation:
+    x: 0
+    y: 0
+    z: 0
+    w: 1.0
+- position:
+    x: 0
+    y: 0
+    z: 1.5
+  orientation:
+    x: 0
+    y: 0
+    z: 0
+    w: 1.0

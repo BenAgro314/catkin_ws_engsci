@@ -1,8 +1,10 @@
 import rospy
 import numpy as np
 from tf.transformations import quaternion_matrix, quaternion_from_matrix
+import os
+import yaml
 import tf_conversions
-from geometry_msgs.msg import PoseStamped, TransformStamped, Pose, Quaternion, Twist
+from geometry_msgs.msg import PoseStamped, TransformStamped, Pose, Quaternion, Twist, PoseArray
 import math
 from nav_msgs.msg import Path, Odometry
 from visualization_msgs.msg import Marker
@@ -461,3 +463,39 @@ def transform_stamped_to_odometry(transform_stamped: TransformStamped):
     odom.twist.covariance = [0] * 36
     
     return odom
+
+def yaml_to_pose_array(yaml_file_path):
+    # Load the YAML data from the file
+    with open(yaml_file_path, 'r') as yaml_file:
+        yaml_data = yaml.safe_load(yaml_file)
+    
+    # Create a PoseArray message
+    pose_array = PoseArray()
+    
+    # Iterate through the list of poses in the YAML data
+    for pose_data in yaml_data['poses']:
+        # Create a Pose message
+        pose = Pose()
+        
+        # Set the position and orientation of the Pose message
+        pose.position.x = pose_data['position']['x']
+        pose.position.y = pose_data['position']['y']
+        pose.position.z = pose_data['position']['z']
+        pose.orientation.x = pose_data['orientation']['x']
+        pose.orientation.y = pose_data['orientation']['y']
+        pose.orientation.z = pose_data['orientation']['z']
+        pose.orientation.w = pose_data['orientation']['w']
+        
+        # Append the Pose message to the PoseArray message
+        pose_array.poses.append(pose)
+    
+    return pose_array
+
+def get_current_directory():
+    # Get the absolute path of the script that is currently being executed
+    script_path = os.path.abspath(__file__)
+    
+    # Get the directory containing the script
+    script_directory = os.path.dirname(script_path)
+    
+    return script_directory

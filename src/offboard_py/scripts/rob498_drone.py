@@ -3,7 +3,8 @@ from typing import List, Optional
 from offboard_py.scripts.local_planner import LocalPlanner, LocalPlannerType 
 
 #from offboard_py.scripts.path_planner import find_traj
-from offboard_py.scripts.utils import Colors, are_angles_close, config_to_transformation_matrix, get_config_from_pose_stamped, make_sphere_marker, numpy_to_transform_stamped, pose_stamped_to_transform_stamped, shortest_signed_angle, slerp_pose, transform_stamped_to_pose_stamped, transform_twist
+from offboard_py.scripts.utils import Colors, are_angles_close, config_to_transformation_matrix, get_config_from_pose_stamped, make_sphere_marker, numpy_to_transform_stamped, pose_stamped_to_transform_stamped, shortest_signed_angle, slerp_pose, transform_stamped_to_pose_stamped, transform_twist, yaml_to_pose_array, get_current_directory
+import os
 from offboard_py.scripts.utils import pose_to_numpy, transform_stamped_to_numpy, pose_stamped_to_numpy, numpy_to_pose_stamped
 from threading import Semaphore, Lock
 import rospy
@@ -19,8 +20,10 @@ from visualization_msgs.msg import Marker
 
 USE_SLERP=False
 SWEEP_HGT=False
-USE_ORIENTATION=False
-PERP=False
+USE_ORIENTATION=True
+PERP=True
+BUILD_MAP=False
+JIGGLE=True
 
 class RobDroneControl():
 
@@ -218,12 +221,18 @@ class RobDroneControl():
             print(f"Cannot launch, not on ground, or waypoint queue is not empty: {self.len_waypoint_queue}")
             return EmptyResponse()
 
-        print(f"{Colors.GREEN}LAUNCHING{Colors.RESET}")
-        pose = deepcopy(self.current_t_map_dots)
-        pose.header.stamp = rospy.Time.now()
-        pose.pose.position.z = self.launch_height
-        self.home_pose = pose
-        self.waypoint_queue_push(pose)
+        if not BUILD_MAP:
+            print(f"{Colors.GREEN}LAUNCHING{Colors.RESET}")
+            pose = deepcopy(self.current_t_map_dots)
+            pose.header.stamp = rospy.Time.now()
+            pose.pose.position.z = self.launch_height
+            self.home_pose = pose
+            self.waypoint_queue_push(pose)
+        else:
+            pose_array = yaml_to_pose_array(os.path.join(get_current_directory(), "../config/build_map_poses.yaml"))
+            self.received_waypoints = pose_array
+            self.test_task_3()
+            self.received_waypoints = []
 
         self.publish_current_queue()
 
@@ -299,7 +308,21 @@ class RobDroneControl():
                 self.waypoint_queue_num.release() # semaphor.up
                 self.len_waypoint_queue += 1
 
-                pose_facing_next = numpy_to_pose_stamped(config_to_transformation_matrix(x1, y1, z2, yaw))
+                if JIGGLE:
+                    if prev_yaw is not None:
+                        for x_off, y_off in [(0.15, 0.15), (-0.15, 0.15), (-0.15, -0.15), (0.15, -0.15)]:
+                            pose = numpy_to_pose_stamped(config_to_transformation_matrix(x1, y1, z1, prev_yaw))
+                            pose.pose.position.x += x_off
+                            pose.pose.position.y += y_off
+                            self.waypoint_queue.append(pose)
+                            self.waypoint_queue_num.release() # semaphor.up
+                            self.len_waypoint_queue += 1
+
+                if SWEEP_HGT:
+                    pose_facing_next = numpy_to_pose_stamped(config_to_transformation_matrix(x1, y1, z2, yaw))
+                else:
+                    pose_facing_next = numpy_to_pose_stamped(config_to_transformation_matrix(x1, y1, z1, yaw))
+
                 self.waypoint_queue.append(pose_facing_next)
                 self.waypoint_queue_num.release() # semaphor.up
                 self.len_waypoint_queue += 1
