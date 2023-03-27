@@ -19,7 +19,7 @@ from visualization_msgs.msg import Marker
 
 USE_SLERP=True
 SWEEP_HGT=False
-USE_ORIENTATION=True
+USE_ORIENTATION=False
 PERP=False
 
 class RobDroneControl():
@@ -86,8 +86,8 @@ class RobDroneControl():
         self.marker_pub = rospy.Publisher('sphere_marker', Marker, queue_size=10)
         self.t_dots_base = np.array(
             [
-                [0, -1, 0, 0],
                 [1, 0, 0, 0],
+                [0, 1, 0, 0],
                 [0, 0, 1, 0.05],
                 [0, 0, 0, 1],
             ]

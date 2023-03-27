@@ -581,7 +581,7 @@
       <!-- Child link -->
       <child>dots_link</child>
       <!-- Transformation (e.g., translation and rotation) relative to the parent link -->
-      <!--pose>0.0 0.0 -0.05 0.0 0.0 -1.5707</pose-->
+      <!--pose>0.0 0.0 -0.05 0.0 0.0 0</pose-->
       <!-- Axis of rotation (arbitrary, since the joint is fixed) -->
       <axis>
         <xyz>0 0 1</xyz>
