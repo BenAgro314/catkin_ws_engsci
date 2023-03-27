@@ -93,6 +93,34 @@ def numpy_to_pose_stamped(transformation_matrix, frame_id="parent_frame"):
 
     return pose_stamped
 
+def numpy_to_transform_stamped(transformation_matrix, frame_id="parent_frame", child_frame_id=""):
+    # Check if the input is a 4x4 matrix
+    if transformation_matrix.shape != (4, 4):
+        raise ValueError("The input must be a 4x4 NumPy array")
+
+    # Extract position and rotation components
+    position = transformation_matrix[:3, 3]
+    quaternion = quaternion_from_matrix(transformation_matrix)
+
+    # Create a PoseStamped message
+    pose_stamped = TransformStamped()
+    pose_stamped.header.stamp = rospy.Time.now()
+    pose_stamped.header.frame_id = frame_id
+    pose_stamped.child_frame_id = child_frame_id
+
+    pose_stamped.transform.translation.x = position[0]
+    pose_stamped.transform.translation.y = position[1]
+    pose_stamped.transform.translation.z = position[2]
+
+    pose_stamped.transform.rotation.x = quaternion[0]
+    pose_stamped.transform.rotation.y = quaternion[1]
+    pose_stamped.transform.rotation.z = quaternion[2]
+    pose_stamped.transform.rotation.w = quaternion[3]
+
+    return pose_stamped
+
+
+
 def pose_to_transform_stamped(pose: Pose, frame_id="parent_frame", child_frame_id="child_frame"):
     # Extract position and orientation from the Pose message
     position = pose.position

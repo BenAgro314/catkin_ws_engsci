@@ -3,7 +3,7 @@ from typing import List, Optional
 from offboard_py.scripts.local_planner import LocalPlanner, LocalPlannerType 
 
 #from offboard_py.scripts.path_planner import find_traj
-from offboard_py.scripts.utils import Colors, are_angles_close, config_to_transformation_matrix, get_config_from_pose_stamped, make_sphere_marker, pose_stamped_to_transform_stamped, shortest_signed_angle, slerp_pose, transform_stamped_to_pose_stamped, transform_twist
+from offboard_py.scripts.utils import Colors, are_angles_close, config_to_transformation_matrix, get_config_from_pose_stamped, make_sphere_marker, numpy_to_transform_stamped, pose_stamped_to_transform_stamped, shortest_signed_angle, slerp_pose, transform_stamped_to_pose_stamped, transform_twist
 from offboard_py.scripts.utils import pose_to_numpy, transform_stamped_to_numpy, pose_stamped_to_numpy, numpy_to_pose_stamped
 from threading import Semaphore, Lock
 import rospy
@@ -20,7 +20,7 @@ from visualization_msgs.msg import Marker
 USE_SLERP=True
 SWEEP_HGT=False
 USE_ORIENTATION=True
-PERP=True
+PERP=False
 
 class RobDroneControl():
 
@@ -86,12 +86,13 @@ class RobDroneControl():
         self.marker_pub = rospy.Publisher('sphere_marker', Marker, queue_size=10)
         self.t_dots_base = np.array(
             [
+                [0, -1, 0, 0],
                 [1, 0, 0, 0],
-                [0, 1, 0, 0],
                 [0, 0, 1, 0.05],
                 [0, 0, 0, 1],
             ]
         )
+        #self.broadcaster.sendTransform(numpy_to_transform_stamped(self.t_dots_base, frame_id='dots_link', child_frame_id='base_link'))
         self.t_base_dots = np.linalg.inv(self.t_dots_base)
 
     def publish_sphere_marker(self, x: float, y: float, z:float, r: float):
@@ -144,9 +145,11 @@ class RobDroneControl():
             self.t_map_global = t_map_dots @ np.linalg.inv(t_global_dots)
             self.prev_vicon_pose = vicon_pose
         else:
-            t_global_dots = transform_stamped_to_numpy(vicon_pose)
-            self.t_map_global = pose_stamped_to_numpy(self.current_t_map_dots) @ np.linalg.inv(t_global_dots)
-
+            if self.current_t_map_dots is not None:
+                with self.current_pose_lock:
+                    t_global_dots = transform_stamped_to_numpy(vicon_pose)
+                    self.t_map_global = pose_stamped_to_numpy(self.current_t_map_dots) @ np.linalg.inv(t_global_dots)
+        #self.broadcaster.sendTransform(numpy_to_transform_stamped(self.t_map_global, frame_id='map', child_frame_id='global'))
 
     def waypoint_queue_push(self, pose: PoseStamped):
         self.waypoint_queue_lock.acquire()
@@ -168,13 +171,11 @@ class RobDroneControl():
         return res
 
     def pose_cb(self, t_map_base: PoseStamped):
+        #self.broadcaster.sendTransform(pose_stamped_to_transform_stamped(t_map_base, parent_frame_id='map', child_frame_id='base_link'))
         t_map_base = pose_stamped_to_numpy(t_map_base)
         t_map_dots = numpy_to_pose_stamped(t_map_base @ self.t_base_dots, frame_id='map')
-        if USE_SLERP:
-            with self.current_pose_lock:
-                self.prev_t_map_dots = self.current_t_map_dots
-                self.current_t_map_dots = t_map_dots
-        else:
+        with self.current_pose_lock:
+            self.prev_t_map_dots = self.current_t_map_dots
             self.current_t_map_dots = t_map_dots
 
     def state_cb(self, msg: State):
@@ -285,7 +286,7 @@ class RobDroneControl():
                 next_pose = numpy_to_pose_stamped(t_map_dotsip1, self.current_t_map_dots.header.frame_id)
 
                 x1, y1, z1 = get_config_from_pose_stamped(pose)[:3]
-                x2, y2, z2 = get_config_from_pose_stamped(next_pose)[:2]
+                x2, y2, z2 = get_config_from_pose_stamped(next_pose)[:3]
                 #t_global_dotsi = pose_stamped_to_numpy(pose)
                 #t_global_dotsip1 = pose_stamped_to_numpy(next_pose)
                 yaw = np.arctan2(y2 - y1, x2 - x1)
@@ -304,13 +305,7 @@ class RobDroneControl():
                 self.len_waypoint_queue += 1
                 prev_yaw = yaw
         else:
-            for t_global_dotsi in list_t_map_dots:
-        #for i, pose in enumerate(self.received_waypoints.poses):
-        #    # 1. convert the pose into a numpy array to transform it
-        #    t_global_dotsi = pose_to_numpy(pose)
-        #    # 2. transform it into the map frame
-        #    t_map_dotsi = self.t_map_global @ t_global_dotsi
-        #    # 3. turn back into a tran
+            for t_map_dotsi in list_t_map_dots:
                 new_pose = numpy_to_pose_stamped(t_map_dotsi, self.current_t_map_dots.header.frame_id)
                 if SWEEP_HGT:
                     new_pose_bottom = deepcopy(new_pose)
