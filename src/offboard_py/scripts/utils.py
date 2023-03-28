@@ -179,6 +179,17 @@ def pose_stamped_to_transform_stamped(pose_stamped: PoseStamped, parent_frame_id
 
     return transform_stamped
 
+def get_config_from_pose(pose):
+    q = pose.orientation
+    x = pose.position.x
+    y = pose.position.y
+    z = pose.position.z
+
+    # Convert the quaternion to Euler angles (roll, pitch, yaw)
+    roll, pitch, yaw = quaternion_to_euler(q.x, q.y, q.z, q.w)
+
+    return np.array([x, y, z, roll, pitch, yaw])
+
 def get_config_from_pose_stamped(pose_stamped):
     """
     Compute the x, y, z, yaw from a PoseStamped message.
@@ -190,15 +201,7 @@ def get_config_from_pose_stamped(pose_stamped):
         np.array([float, float, float, float])
     """
     # Extract the orientation quaternion
-    q = pose_stamped.pose.orientation
-    x = pose_stamped.pose.position.x
-    y = pose_stamped.pose.position.y
-    z = pose_stamped.pose.position.z
-
-    # Convert the quaternion to Euler angles (roll, pitch, yaw)
-    roll, pitch, yaw = quaternion_to_euler(q.x, q.y, q.z, q.w)
-
-    return np.array([x, y, z, roll, pitch, yaw])
+    return get_config_from_pose(pose_stamped.pose)
 
 def quaternion_to_euler(x, y, z, w):
     """

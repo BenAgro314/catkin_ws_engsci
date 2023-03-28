@@ -559,7 +559,7 @@
     <!-- New link For VICON -->
     <link name="dots_link">
       <!-- Properties of the new_link (e.g., visual, collision, inertial) -->
-      <pose>0.0 0.0 -0.05 0.0 0.0 -1.5707</pose>
+      <pose>0.0 0.0 -0.05 0.0 0.0 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
         <mass>0.001</mass>
