@@ -73,9 +73,9 @@ CMakeFiles/global_planner_generate_messages_py: /home/agrobenj/catkin_ws/devel/.
 /home/agrobenj/catkin_ws/devel/.private/global_planner/lib/python3/dist-packages/global_planner/msg/_PathWithRiskMsg.py: /home/agrobenj/catkin_ws/src/avoidance/global_planner/msg/PathWithRiskMsg.msg
 /home/agrobenj/catkin_ws/devel/.private/global_planner/lib/python3/dist-packages/global_planner/msg/_PathWithRiskMsg.py: /opt/ros/noetic/share/geometry_msgs/msg/Point.msg
 /home/agrobenj/catkin_ws/devel/.private/global_planner/lib/python3/dist-packages/global_planner/msg/_PathWithRiskMsg.py: /opt/ros/noetic/share/geometry_msgs/msg/PoseStamped.msg
-/home/agrobenj/catkin_ws/devel/.private/global_planner/lib/python3/dist-packages/global_planner/msg/_PathWithRiskMsg.py: /opt/ros/noetic/share/geometry_msgs/msg/Pose.msg
-/home/agrobenj/catkin_ws/devel/.private/global_planner/lib/python3/dist-packages/global_planner/msg/_PathWithRiskMsg.py: /opt/ros/noetic/share/std_msgs/msg/Header.msg
 /home/agrobenj/catkin_ws/devel/.private/global_planner/lib/python3/dist-packages/global_planner/msg/_PathWithRiskMsg.py: /opt/ros/noetic/share/geometry_msgs/msg/Quaternion.msg
+/home/agrobenj/catkin_ws/devel/.private/global_planner/lib/python3/dist-packages/global_planner/msg/_PathWithRiskMsg.py: /opt/ros/noetic/share/std_msgs/msg/Header.msg
+/home/agrobenj/catkin_ws/devel/.private/global_planner/lib/python3/dist-packages/global_planner/msg/_PathWithRiskMsg.py: /opt/ros/noetic/share/geometry_msgs/msg/Pose.msg
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/agrobenj/catkin_ws/build/global_planner/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating Python from MSG global_planner/PathWithRiskMsg"
 	catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/genpy/cmake/../../../lib/genpy/genmsg_py.py /home/agrobenj/catkin_ws/src/avoidance/global_planner/msg/PathWithRiskMsg.msg -Iglobal_planner:/home/agrobenj/catkin_ws/src/avoidance/global_planner/msg -Istd_msgs:/opt/ros/noetic/share/std_msgs/cmake/../msg -Igeometry_msgs:/opt/ros/noetic/share/geometry_msgs/cmake/../msg -p global_planner -o /home/agrobenj/catkin_ws/devel/.private/global_planner/lib/python3/dist-packages/global_planner/msg
 

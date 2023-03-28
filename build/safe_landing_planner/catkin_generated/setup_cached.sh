@@ -8,6 +8,9 @@
 
 # modified environment variables
 export CMAKE_PREFIX_PATH="/home/agrobenj/catkin_ws/devel/.private/safe_landing_planner:$CMAKE_PREFIX_PATH"
+export LD_LIBRARY_PATH="/home/agrobenj/catkin_ws/devel/.private/safe_landing_planner/lib:$LD_LIBRARY_PATH"
+export PKG_CONFIG_PATH="/home/agrobenj/catkin_ws/devel/.private/safe_landing_planner/lib/pkgconfig:$PKG_CONFIG_PATH"
 export PWD='/home/agrobenj/catkin_ws/build/safe_landing_planner'
+export PYTHONPATH="/home/agrobenj/catkin_ws/devel/.private/safe_landing_planner/lib/python3/dist-packages:$PYTHONPATH"
 export ROSLISP_PACKAGE_DIRECTORIES="/home/agrobenj/catkin_ws/devel/.private/safe_landing_planner/share/common-lisp:$ROSLISP_PACKAGE_DIRECTORIES"
 export ROS_PACKAGE_PATH="/home/agrobenj/catkin_ws/src/avoidance/safe_landing_planner:$ROS_PACKAGE_PATH"

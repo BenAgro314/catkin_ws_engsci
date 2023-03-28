@@ -72,9 +72,9 @@ CMakeFiles/global_planner_generate_messages_lisp: /home/agrobenj/catkin_ws/devel
 /home/agrobenj/catkin_ws/devel/.private/global_planner/share/common-lisp/ros/global_planner/msg/PathWithRiskMsg.lisp: /home/agrobenj/catkin_ws/src/avoidance/global_planner/msg/PathWithRiskMsg.msg
 /home/agrobenj/catkin_ws/devel/.private/global_planner/share/common-lisp/ros/global_planner/msg/PathWithRiskMsg.lisp: /opt/ros/noetic/share/geometry_msgs/msg/Point.msg
 /home/agrobenj/catkin_ws/devel/.private/global_planner/share/common-lisp/ros/global_planner/msg/PathWithRiskMsg.lisp: /opt/ros/noetic/share/geometry_msgs/msg/PoseStamped.msg
-/home/agrobenj/catkin_ws/devel/.private/global_planner/share/common-lisp/ros/global_planner/msg/PathWithRiskMsg.lisp: /opt/ros/noetic/share/geometry_msgs/msg/Pose.msg
-/home/agrobenj/catkin_ws/devel/.private/global_planner/share/common-lisp/ros/global_planner/msg/PathWithRiskMsg.lisp: /opt/ros/noetic/share/std_msgs/msg/Header.msg
 /home/agrobenj/catkin_ws/devel/.private/global_planner/share/common-lisp/ros/global_planner/msg/PathWithRiskMsg.lisp: /opt/ros/noetic/share/geometry_msgs/msg/Quaternion.msg
+/home/agrobenj/catkin_ws/devel/.private/global_planner/share/common-lisp/ros/global_planner/msg/PathWithRiskMsg.lisp: /opt/ros/noetic/share/std_msgs/msg/Header.msg
+/home/agrobenj/catkin_ws/devel/.private/global_planner/share/common-lisp/ros/global_planner/msg/PathWithRiskMsg.lisp: /opt/ros/noetic/share/geometry_msgs/msg/Pose.msg
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/agrobenj/catkin_ws/build/global_planner/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating Lisp code from global_planner/PathWithRiskMsg.msg"
 	catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/noetic/share/genlisp/cmake/../../../lib/genlisp/gen_lisp.py /home/agrobenj/catkin_ws/src/avoidance/global_planner/msg/PathWithRiskMsg.msg -Iglobal_planner:/home/agrobenj/catkin_ws/src/avoidance/global_planner/msg -Istd_msgs:/opt/ros/noetic/share/std_msgs/cmake/../msg -Igeometry_msgs:/opt/ros/noetic/share/geometry_msgs/cmake/../msg -p global_planner -o /home/agrobenj/catkin_ws/devel/.private/global_planner/share/common-lisp/ros/global_planner/msg
 
