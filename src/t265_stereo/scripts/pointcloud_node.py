@@ -276,7 +276,7 @@ def image_callback(image_left, image_right, info_left, info_right):
 
     #w_fit, C_fit, r_fit, fit_err = fit(out_points, guess_angles=[(0, 0)])
     #print(w_fit, C_fit, r_fit, fit_err)
-    publish_cylinder_marker(w_fit, C_fit, r_fit)
+    #publish_cylinder_marker(w_fit, C_fit, r_fit)
     out_points = numpy_to_PointCloud2(out_points)
 
     pub_xyz.publish(out_points)
