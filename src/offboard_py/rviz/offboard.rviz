@@ -230,7 +230,7 @@ Visualization Manager:
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
         Max Value: 1.6990923881530762
-        Min Value: 0.4551140367984772
+        Min Value: 0.9929760694503784
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -319,9 +319,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3502025306224823
+      Pitch: 0.45520251989364624
       Target Frame: <Fixed Frame>
-      Yaw: 2.4248127937316895
+      Yaw: 2.4748220443725586
     Saved: ~
 Window Geometry:
   Camera:

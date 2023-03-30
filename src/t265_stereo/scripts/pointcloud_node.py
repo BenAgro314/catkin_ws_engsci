@@ -14,7 +14,6 @@ import std_msgs.msg
 #from cylinder_fitting import fit
 from rospy.numpy_msg import numpy_msg
 import tf.transformations
-from visualization_msgs.msg import Marker
 import message_filters
 #from t265_pointcloud_pub.msg import Floats
 from cv_bridge import CvBridge
@@ -37,56 +36,6 @@ bridge = CvBridge()
 pub_xyz = rospy.Publisher('/camera/points', PointCloud2, queue_size=10)
 
 pub_undist = rospy.Publisher('/camera/undistorted', Image, queue_size=10)
-
-marker_pub = rospy.Publisher('/cylinder_marker', Marker, queue_size=10)
-
-def rpy_to_quaternion(roll, pitch, yaw):
-    # Convert RPY angles to quaternion
-    quaternion = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
-    return quaternion
-
-def publish_cylinder_marker(w_fit, C_fit, r_fit):
-    marker = Marker()
-    marker.header.frame_id = 'camera_optical_frame'  # Frame in which the marker is defined
-    marker.header.stamp = rospy.Time.now()  # Timestamp
-    marker.ns = 'cylinder'  # Namespace for the marker
-    marker.id = 0  # Unique ID for the marker
-    marker.type = Marker.CYLINDER  # Marker type: cylinder
-    marker.action = Marker.ADD  # Action: add/modify the marker
-
-    orientation = w_fit / np.linalg.norm(w_fit)
-
-    # Compute the quaternion from the orientation vector
-    angle = np.arccos(orientation[2])
-    axis = np.cross([0, 0, 1], orientation)
-    axis /= np.linalg.norm(axis)
-    quaternion = tf.transformations.quaternion_about_axis(angle, axis)
-
-    # Set the pose of the cylinder (position and orientation)
-    marker.pose.position.x = C_fit[0]
-    marker.pose.position.y = C_fit[1]
-    marker.pose.position.z = C_fit[2]
-    marker.pose.orientation.x = quaternion[0]
-    marker.pose.orientation.y = quaternion[1]
-    marker.pose.orientation.z = quaternion[2]
-    marker.pose.orientation.w = quaternion[3]
-
-    # Set the scale of the cylinder (radius and height)
-    marker.scale.x = 2*r_fit  # Diameter in the x direction (radius)
-    marker.scale.y = 2*r_fit  # Diameter in the y direction (radius)
-    marker.scale.z = 2.2  # Height in the z direction
-
-    # Set the color and transparency (alpha) of the cylinder
-    marker.color.r = 0.0
-    marker.color.g = 1.0
-    marker.color.b = 0.0
-    marker.color.a = 0.8
-
-    # Set the lifetime of the marker (0 means infinite)
-    marker.lifetime = rospy.Duration(0)
-
-    # Publish the marker
-    marker_pub.publish(marker)
 
 """
 Returns a numpy array of given shape=row,column from a tuple
@@ -269,7 +218,7 @@ def image_callback(image_left, image_right, info_left, info_right):
     xyz = xyz.reshape((-1, 3))
     y_mask = np.logical_and(xyz[:, 1]>= -0.5, xyz[:, 1]  <= 0.5)
     x_mask = np.logical_and(xyz[:, 0]>= -0.7, xyz[:, 0]  <= 0.7)
-    z_mask = np.logical_and(xyz[:, 2] <= 1.7, xyz[:,2]>=0.2)
+    z_mask = np.logical_and(xyz[:, 2] <= 1.7, xyz[:,2]>=0.3)
     zy_mask = np.logical_and(z_mask, y_mask)
     xyz_mask = np.logical_and(zy_mask, x_mask)
     out_points = xyz[xyz_mask]
