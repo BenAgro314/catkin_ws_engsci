@@ -1,0 +1,11 @@
+<launch>
+  <!-- Run the pose_to_tf node -->
+  <node name="pose_to_tf" pkg="t265_stereo" type="tf_pub.py" output="screen"/>
+  <node name="pointcloud_node" pkg="t265_stereo" type="pointcloud_node.py" output="screen"/>
+  <!--node name="occ_map_node" pkg="t265_stereo" type="occ_map.py" output="screen"/-->
+
+  <!-- Publish a static transformation between base_link and camera_odom_frame -->
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_camera_odom_frame"
+        args="0 0 0 -1.57 0 -1.57 base_link camera_optical_frame 1000"/>
+
+</launch>

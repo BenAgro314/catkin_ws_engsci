@@ -24,6 +24,12 @@ class Colors:
     BOLD    = "\033[;1m"
     REVERSE = "\033[;7m"
 
+
+def rpy_to_quaternion(roll, pitch, yaw):
+    # Convert RPY angles to quaternion
+    quaternion = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
+    return quaternion
+
 def pose_to_numpy(pose):
     # Extract position and orientation from the Pose message
     position = pose.position

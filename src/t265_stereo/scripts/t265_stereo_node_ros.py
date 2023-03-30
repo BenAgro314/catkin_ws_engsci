@@ -9,9 +9,36 @@ import message_filters
 from geometry_msgs.msg import PoseStamped
 import tf2_ros
 from sensor_msgs.msg import Image, CameraInfo
+from sensor_msgs.msg import Image, CameraInfo, PointCloud2, PointField
 import tf.transformations as tf_transformations
 import pytesseract
 from imutils.object_detection import non_max_suppression
+
+def numpy_to_PointCloud2(array):
+    msg = PointCloud2()
+
+    msg.header.stamp = rospy.Time().now()
+
+    msg.header.frame_id = "camera_odom_frame"
+
+    if len(array.shape) == 3:
+        msg.height = array.shape[1]
+        msg.width = array.shape[0]
+    else:
+        msg.height = 1
+        msg.width = len(array)
+
+    msg.fields = [
+        PointField('x', 0, PointField.FLOAT32, 1),
+        PointField('y', 4, PointField.FLOAT32, 1),
+        PointField('z', 8, PointField.FLOAT32, 1)]
+    msg.is_bigendian = False
+    msg.point_step = 12
+    msg.row_step = msg.point_step * array.shape[0]
+    # msg.is_dense = int(np.isfinite(array).all())
+    msg.is_dense = False
+    msg.data = np.asarray(array, np.float32).tostring()
+    return msg
 
 def decode_predictions(scores, geometry):
 	# grab the number of rows and columns from the scores volume, then
@@ -85,19 +112,22 @@ class CameraHandler:
         self.max_disp = self.min_disp + self.num_disp
         self.stereo = cv2.StereoSGBM_create(minDisparity = self.min_disp,
                                     numDisparities = self.num_disp,
-                                    blockSize = 16,
+                                    blockSize = 11,
                                     P1 = 8*3*window_size**2,
                                     P2 = 32*3*window_size**2,
                                     disp12MaxDiff = 1,
                                     uniquenessRatio = 10,
                                     speckleWindowSize = 100,
-                                    speckleRange = 32)
+                                    speckleRange = 32,
+                                    mode=cv2.STEREO_SGBM_MODE_HH,
+                                    )
 
         # Create subscribers for the Image and CameraInfo topics
         left_image_sub = message_filters.Subscriber('/camera/fisheye1/image_raw', Image)
         left_camera_info_sub = message_filters.Subscriber('/camera/fisheye1/camera_info', CameraInfo)
         right_image_sub = message_filters.Subscriber('/camera/fisheye2/image_raw', Image)
         right_camera_info_sub = message_filters.Subscriber('/camera/fisheye2/camera_info', CameraInfo)
+        self.pub_xyz = rospy.Publisher('/camera/points', PointCloud2, queue_size=10)
 
         # Create an ApproximateTimeSynchronizer to synchronize the two subscribers
         # The queue size is set to 10, and the slop parameter (in seconds) is set to 0.1
@@ -231,6 +261,15 @@ class CameraHandler:
 
         # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
         disparity = self.stereo.compute(center_undistorted["left"], center_undistorted["right"]).astype(np.float32) / 16.0
+        
+        # publish to pointcloud
+        xyz = cv2.reprojectImageTo3D(disparity,Q)
+
+        # pub.publish(disparity)
+        mask = disparity > 2
+        out_points = xyz[mask]
+        out_points = numpy_to_PointCloud2(out_points)
+        self.pub_xyz.publish(out_points)
 
         # re-crop just the valid part of the disparity
         disparity = disparity[:,self.max_disp:]
