@@ -2,6 +2,7 @@
 
 import rospy
 import numpy as np
+from scipy.io import savemat
 from sensor_msgs.msg import PointCloud2
 from nav_msgs.msg import OccupancyGrid
 import sensor_msgs.point_cloud2 as pc2
@@ -204,17 +205,18 @@ def pointcloud_callback(msg):
 
     #inlier_pts = pts_map[inliers]
     #if center is None:
-    #    return
+        #return
 
     #obj = circle_objective_function(center, inlier_pts[:, 0], inlier_pts[:, 1], known_radius=R)
     #print(obj)
 
-    pub_xyz.publish(numpy_to_PointCloud2(pts_map, frame_id="map"))
+    #savemat(f"/home/agrobenj/catkin_ws/clouds/cloud_{rospy.Time.now()}.mat", {"pts_map": pts_map})
+    #pub_xyz.publish(numpy_to_PointCloud2(pts_map, frame_id="map"))
 
     #if sum(inliers) < 2000 or obj > 0.2:
     #    return 
 
-    ##marker_pub.publish()
+    #marker_pub.publish()
     #publish_cylinder_marker(np.array([0, 0, 1]), [center[0], center[1], 1.1], R)
     #print(center)
 

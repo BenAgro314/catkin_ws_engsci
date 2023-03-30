@@ -199,6 +199,7 @@ def image_callback(image_left, image_right, info_left, info_right):
 
     # TEST
     # print(type(center_undistorted["left"]))
+    np.save(f"/home/agrobenj/catkin_ws/images/{rospy.Time.now()}_img.png", center_undistorted["left"])
     img_msg = bridge.cv2_to_imgmsg(center_undistorted["left"])
     img_msg.header.stamp = rospy.Time().now()
     pub_undist.publish(img_msg)
