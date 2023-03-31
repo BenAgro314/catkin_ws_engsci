@@ -51,7 +51,7 @@ class Detector:
         self.K = np.array([[1581.5, 0, 1034.7], # needs to be tuned
                                     [0, 1588.7, 557.16],
                                     [0, 0, 1]])
-        self.D = np.array([-0.37906155, 0.2780121, -0.00092033, 0.00087556, -0.21837157])
+        self.D = np.array([[-0.37906155, 0.2780121, -0.00092033, 0.00087556, -0.21837157]])
         self.image_sub= rospy.Subscriber("imx219_image", Image, callback = self.image_callback)
         self.seg_image_pub= rospy.Publisher("imx219_seg", Image, queue_size=10)
         self.bridge = CvBridge()
@@ -102,7 +102,7 @@ class Detector:
     def image_callback(self, msg: Image):
 
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='rgb8')
-        #image = undistort_image(image, self.K, self.D)
+        image = undistort_image(image, self.K, self.D)
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
         # Define the lower and upper bounds for the color yellow in the HSV color space
