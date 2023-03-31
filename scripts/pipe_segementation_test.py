@@ -13,25 +13,29 @@ files = sorted(files_only)
 
 #files = ['frame_0173.png']#['frame_0137.png', 'frame_0173.png']
 
-intrinsic_matrix = np.array([[800, 0, 320], # needs to be tuned
-                             [0, 800, 240],
-                             [0, 0, 1]])
-
+K = np.array([[1581.5, 0, 1034.7], # needs to be tuned
+                            [0, 1588.7, 557.16],
+                            [0, 0, 1]])
+D = np.array([[-0.37906155, 0.2780121, -0.00092033, 0.00087556, -0.21837157]])
 images = []
 
 
+def undistort_image(img, K, D):
+    # Undistort the image
+    img = cv2.undistort(img, K, D)
+    return img
 
-def reproject_2D_to_3D(bbox, actual_width, intrinsic_matrix):
+def reproject_2D_to_3D(bbox, actual_height, K):
     # Extract the focal length (fx) and the optical center (cx, cy) from the intrinsic matrix
-    fx = intrinsic_matrix[0, 0]
-    cx = intrinsic_matrix[0, 2]
-    cy = intrinsic_matrix[1, 2]
+    fx = K[0, 0]
+    cx = K[0, 2]
+    cy = K[1, 2]
 
     # Calculate the width of the bounding box in pixels
-    bbox_width_pixels = bbox[2] - bbox[0]
+    bbox_height_pixels = bbox[3] - bbox[1]
 
     # Calculate the depth (Z) of the object based on the known width and the width in pixels
-    depth = (fx * actual_width) / bbox_width_pixels
+    depth = (fx * actual_height) / bbox_height_pixels
 
     # Calculate the 2D coordinates of the center of the bounding box
     center_x_2D = (bbox[0] + bbox[2]) / 2
@@ -47,6 +51,7 @@ def reproject_2D_to_3D(bbox, actual_width, intrinsic_matrix):
 for f in files:
     img_path = os.path.join(directory_path, f)
     image = cv2.imread(img_path)
+    image = undistort_image(image, K, D)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     #plt.imshow(image)
     #plt.show()
@@ -112,7 +117,7 @@ for f in files:
 
 
         bbox = [y, x, y+h, x+w] # x_min, y_min, x_max, y_max (flipped because the images are sidways)
-        p_box_cam =  reproject_2D_to_3D(bbox, 0.3, intrinsic_matrix)
+        p_box_cam =  reproject_2D_to_3D(bbox, 0.3, K)
         #print(p_box_cam)
         # Draw the bounding rectangle on the original image or a blank image
         if percent_green > 0.03:
