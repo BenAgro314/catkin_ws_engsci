@@ -197,9 +197,11 @@ def image_callback(image_left, image_right, info_left, info_right):
     # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
     disparity = stereo.compute(center_undistorted["left"], center_undistorted["right"]).astype(np.float32) / 16.0
 
+    np.save(f"/home/agrobenj/catkin_ws/images/depth_{rospy.Time.now()}.npy", disparity)
+
     # TEST
     # print(type(center_undistorted["left"]))
-    np.save(f"/home/agrobenj/catkin_ws/images/{rospy.Time.now()}_img.png", center_undistorted["left"])
+    #np.save(f"/home/agrobenj/catkin_ws/images/{rospy.Time.now()}_img.png", center_undistorted["left"])
     img_msg = bridge.cv2_to_imgmsg(center_undistorted["left"])
     img_msg.header.stamp = rospy.Time().now()
     pub_undist.publish(img_msg)
@@ -230,7 +232,7 @@ def image_callback(image_left, image_right, info_left, info_right):
     out_points = numpy_to_PointCloud2(out_points)
 
     pub_xyz.publish(out_points)
-    np.save(f"/home/agrobenj/catkin_ws/clouds/cloud_{rospy.Time.now()}.npy", out_points)
+    #np.save(f"/home/agrobenj/catkin_ws/clouds/cloud_{rospy.Time.now()}.npy", out_points)
     rospy.loginfo_throttle(2, "Publishing points and disparity")
 
 def main_loop():
