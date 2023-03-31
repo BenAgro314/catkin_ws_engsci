@@ -3,7 +3,7 @@ import numpy as np
 import os
 import time
 
-files = ['frame_0137.png', 'frame_0173.png']
+files = ['frame_0137.png', 'frame_0173.png', 'frame_0070.png', 'frame_0304.png']
 
 K = np.array([[1581.5, 0, 1034.7], # needs to be tuned
                             [0, 1588.7, 557.16],
