@@ -159,7 +159,7 @@ class Detector:
             if percent_green > 0.03:
                 cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (0, 255, 0), 2)
             else:
-                cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (0, 0, 255), 2)
+                cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
         #res_img = np.concatenate((segmented_large_groups, image), axis=1)
         #res_img = cv2.cvtColor(res_img, cv2.COLOR_BGR2RGB)
