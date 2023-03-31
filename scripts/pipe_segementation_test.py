@@ -11,6 +11,8 @@ all_files_and_directories = os.listdir(directory_path)
 files_only = [f for f in all_files_and_directories if os.path.isfile(os.path.join(directory_path, f))]
 files = sorted(files_only)
 
+#files = ['frame_0173.png']#['frame_0137.png', 'frame_0173.png']
+
 intrinsic_matrix = np.array([[800, 0, 320], # needs to be tuned
                              [0, 800, 240],
                              [0, 0, 1]])
@@ -56,6 +58,7 @@ for f in files:
     # Define the lower and upper bounds for the color yellow in the HSV color space
     lower_yellow = (10, 0, 0)
     upper_yellow = (40, 255, 255)
+    
 
     # Create a binary mask using the defined yellow range
     mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
@@ -85,23 +88,47 @@ for f in files:
     # Use the binary mask to segment the yellow regions from the original image
     #segmented_yellow = cv2.bitwise_and(image, image, mask=mask)
 
+    # Create a binary mask using the defined yellow range
+    lower_green = (40, 0, 0)
+    upper_green = (80, 255, 255)
+    green_mask = cv2.inRange(hsv_image, lower_green, upper_green)
+    green_mask = cv2.morphologyEx(green_mask, cv2.MORPH_OPEN, kernel)
+    green_only = cv2.bitwise_and(image, image, mask=green_mask)
+
+    #lower_red = (120, 0, 0)
+    #upper_red = (170, 255, 255)
+    ##red_mask = cv2.inRange(hsv_image, lower_red, upper_red)
+    #red_mask = cv2.morphologyEx(red_mask, cv2.MORPH_OPEN, kernel)
+    #red_only = cv2.bitwise_and(image, image, mask=red_mask)
+
     # Find contours in the binary mask
     contours, _ = cv2.findContours(filtered_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for contour in contours:
         # Calculate the bounding rectangle for the contour
         x, y, w, h = cv2.boundingRect(contour)
 
+        percent_green = np.sum(green_mask[y:y+h, x:x+w])/(255 * w * h)
+        #percent_red = np.sum(red_mask[y:y+h, x:x+w])/(255 * w * h)
+
+
         bbox = [y, x, y+h, x+w] # x_min, y_min, x_max, y_max (flipped because the images are sidways)
         p_box_cam =  reproject_2D_to_3D(bbox, 0.3, intrinsic_matrix)
         #print(p_box_cam)
         # Draw the bounding rectangle on the original image or a blank image
-        cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        if percent_green > 0.03:
+            cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        else:
+            cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
 
     # Display the original image, binary mask, and segmented yellow regions
-    #cv2.imshow('Original Image', image)
+    cv2.imshow('Original Image', image)
+    #cv2.imshow('Green Image', green_only)
+    #cv2.imshow('Red Image', red_only)
     #cv2.imshow('Binary Mask', mask)
     #cv2.imshow('Segmented Yellow', segmented_large_groups)
-    res_img = np.concatenate((segmented_large_groups, image), axis=1)
+    #res_img = np.concatenate((segmented_large_groups, image), axis=1)
+    res_img = segmented_large_groups
     #res_img = cv2.cvtColor(res_img, cv2.COLOR_BGR2RGB)
     images.append(res_img)
     cv2.imshow('Segmented Groups', images[-1])

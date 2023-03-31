@@ -9,17 +9,30 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from visualization_msgs.msg import Marker
 
-def reproject_2D_to_3D(bbox, actual_width, intrinsic_matrix):
+def undistort_image(img, K, D):
+    # Undistort the image
+    img = cv2.undistort(img, K, D)
+    return img
+
+    # Display the original and undistorted images
+    #cv2.imshow('Original Image', img)
+    #cv2.imshow('Undistorted Image', undistorted_img)
+
+    ## Wait for a key press and close the windows
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
+
+def reproject_2D_to_3D(bbox, actual_height, K):
     # Extract the focal length (fx) and the optical center (cx, cy) from the intrinsic matrix
-    fx = intrinsic_matrix[0, 0]
-    cx = intrinsic_matrix[0, 2]
-    cy = intrinsic_matrix[1, 2]
+    fx = K[0, 0]
+    cx = K[0, 2]
+    cy = K[1, 2]
 
     # Calculate the width of the bounding box in pixels
-    bbox_width_pixels = bbox[2] - bbox[0]
+    bbox_height_pixels = bbox[3] - bbox[1]
 
     # Calculate the depth (Z) of the object based on the known width and the width in pixels
-    depth = (fx * actual_width) / bbox_width_pixels
+    depth = (fx * actual_height) / bbox_height_pixels
 
     # Calculate the 2D coordinates of the center of the bounding box
     center_x_2D = (bbox[0] + bbox[2]) / 2
@@ -35,9 +48,10 @@ def reproject_2D_to_3D(bbox, actual_width, intrinsic_matrix):
 class Detector:
 
     def __init__(self):
-        self.intrinsic_matrix = np.array([[800, 0, 320], # needs to be tuned
-                                    [0, 800, 240],
+        self.K = np.array([[1581.5, 0, 1034.7], # needs to be tuned
+                                    [0, 1588.7, 557.16],
                                     [0, 0, 1]])
+        self.D = np.array([-0.37906155, 0.2780121, -0.00092033, 0.00087556, -0.21837157])
         self.image_sub= rospy.Subscriber("imx219_image", Image, callback = self.image_callback)
         self.seg_image_pub= rospy.Publisher("imx219_seg", Image, queue_size=10)
         self.bridge = CvBridge()
@@ -52,10 +66,12 @@ class Detector:
         marker.type = Marker.CYLINDER  # Marker type: cylinder
         marker.action = Marker.ADD  # Action: add/modify the marker
 
-        orientation = w_fit / np.linalg.norm(w_fit)
-
         # Compute the quaternion from the orientation vector
-        quaternion = tf.transformations.quaternion_about_axis(0, np.array([0, 0, 1]))
+        #quaternion = tf.transformations.quaternion_about_axis(0, np.array([1, 0, 0]))
+        angle = np.arccos(w_fit[2])
+        axis = np.cross([0, 0, 1], w_fit)
+        axis = axis / np.linalg.norm(axis)
+        quaternion = tf.transformations.quaternion_about_axis(angle, axis)
 
         # Set the pose of the cylinder (position and orientation)
         marker.pose.position.x = C_fit[0]
@@ -86,6 +102,7 @@ class Detector:
     def image_callback(self, msg: Image):
 
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='rgb8')
+        #image = undistort_image(image, self.K, self.D)
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
         # Define the lower and upper bounds for the color yellow in the HSV color space
@@ -119,6 +136,11 @@ class Detector:
 
         # Use the binary mask to segment the yellow regions from the original image
         #segmented_yellow = cv2.bitwise_and(image, image, mask=mask)
+        lower_green = (40, 0, 0)
+        upper_green = (80, 255, 255)
+        green_mask = cv2.inRange(hsv_image, lower_green, upper_green)
+        green_mask = cv2.morphologyEx(green_mask, cv2.MORPH_OPEN, kernel)
+        green_only = cv2.bitwise_and(image, image, mask=green_mask)
 
         # Find contours in the binary mask
         contours, _ = cv2.findContours(filtered_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -126,12 +148,18 @@ class Detector:
             # Calculate the bounding rectangle for the contour
             x, y, w, h = cv2.boundingRect(contour)
 
-            bbox = [y, x, y+h, x+w] # x_min, y_min, x_max, y_max (flipped because the images are sidways)
-            p_box_cam =  reproject_2D_to_3D(bbox, 0.3, self.intrinsic_matrix)
+            bbox = [x, y, x+w, y+h] # x_min, y_min, x_max, y_max
+            p_box_cam =  reproject_2D_to_3D(bbox, 0.3, self.K)
+            #p_box_cam = (0, 0, p_box_cam[2])
             self.publish_cylinder_marker(np.array([1, 0, 0]), p_box_cam, 0.15, frame_id="imx219")
             #print(p_box_cam)
             # Draw the bounding rectangle on the original image or a blank image
-            cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            #cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            percent_green = np.sum(green_mask[y:y+h, x:x+w])/(255 * w * h)
+            if percent_green > 0.03:
+                cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            else:
+                cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
         #res_img = np.concatenate((segmented_large_groups, image), axis=1)
         #res_img = cv2.cvtColor(res_img, cv2.COLOR_BGR2RGB)
