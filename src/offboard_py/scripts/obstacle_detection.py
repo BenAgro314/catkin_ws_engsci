@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
+from offboard_py.scripts.utils import quaternion_to_euler
 import rospy
 import cv2
+import tf2_ros
 import matplotlib.pyplot as plt
 import tf.transformations
 import numpy as np
@@ -21,6 +23,22 @@ def undistort_image(img, K, D):
     ## Wait for a key press and close the windows
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
+
+
+def rotate_image(image, angle):
+    # Get the dimensions of the image
+    (height, width) = image.shape[:2]
+
+    # Calculate the center of the image
+    center = (width // 2, height // 2)
+
+    # Create the rotation matrix using the center and the specified angle
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+
+    # Apply the rotation matrix to the image
+    rotated_image = cv2.warpAffine(image, rotation_matrix, (width, height))
+
+    return rotated_image
 
 def reproject_2D_to_3D(bbox, actual_height, K):
     # Extract the focal length (fx) and the optical center (cx, cy) from the intrinsic matrix
@@ -53,9 +71,39 @@ class Detector:
                                     [0, 0, 1]])
         self.D = np.array([[-0.37906155, 0.2780121, -0.00092033, 0.00087556, -0.21837157]])
         self.image_sub= rospy.Subscriber("imx219_image", Image, callback = self.image_callback)
+        #self.pose_sub = rospy.Subscriber("imx219_image", Image, callback = self.image_callback)
         self.seg_image_pub= rospy.Publisher("imx219_seg", Image, queue_size=10)
         self.bridge = CvBridge()
         self.marker_pub = rospy.Publisher('/cylinder_marker', Marker, queue_size=10)
+
+        self.tf_buffer = tf2_ros.Buffer()
+        tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+
+        # Define the source and target frames
+        self.source_frame = 'map'
+        self.target_frame = 'base_link'
+
+        # Wait for the transform to become available
+        #rospy.loginfo("Waiting for transform from {} to {}".format(source_frame, target_frame))
+        #tf_buffer.can_transform(target_frame, source_frame, rospy.Time(), rospy.Duration(10.0))
+
+        # Get the transform
+        #transform_stamped = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time())
+
+        # Call the callback function with the transform
+        #callback(transform_stamped)
+
+
+    #def transformation_callback(transform_stamped):
+    #    # Extract the translation and rotation information from the transform
+    #    translation = transform_stamped.transform.translation
+    #    rotation = transform_stamped.transform.rotation
+
+    #    # Print the translation and rotation information
+    #    rospy.loginfo("Translation: x={:.3f}, y={:.3f}, z={:.3f}".format(
+    #        translation.x, translation.y, translation.z))
+    #    rospy.loginfo("Rotation: x={:.3f}, y={:.3f}, z={:.3f}, w={:.3f}".format(
+    #        rotation.x, rotation.y, rotation.z, rotation.w))
 
     def publish_cylinder_marker(self, w_fit, C_fit, r_fit, frame_id):
         marker = Marker()
@@ -100,9 +148,15 @@ class Detector:
         self.marker_pub.publish(marker)
 
     def image_callback(self, msg: Image):
+        t_map_base = self.tf_buffer.lookup_transform(
+            "map", "base_link", rospy.Time(0)).transform
+        q = t_map_base.rotation
+        roll, pitch, yaw = quaternion_to_euler(q.x, q.y, q.z, q.w)
+        #print(roll, pitch, yaw)
 
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='rgb8')
         image = undistort_image(image, self.K, self.D)
+        image = rotate_image(image, -np.rad2deg(roll))
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
         # Define the lower and upper bounds for the color yellow in the HSV color space
@@ -157,18 +211,21 @@ class Detector:
             #cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (0, 255, 0), 2)
             percent_green = np.sum(green_mask[y:y+h, x:x+w])/(255 * w * h)
             if percent_green > 0.03:
-                cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
             else:
-                cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
         #res_img = np.concatenate((segmented_large_groups, image), axis=1)
         #res_img = cv2.cvtColor(res_img, cv2.COLOR_BGR2RGB)
         #cv2.imshow('Segmented Groups', res_img)
         #cv2.waitKey(1)
 
-        seg_image_msg = self.bridge.cv2_to_imgmsg(segmented_large_groups, encoding='rgb8')
-        seg_image_msg.header.stamp = rospy.Time.now()
-        self.seg_image_pub.publish(seg_image_msg)
+        #seg_image_msg = self.bridge.cv2_to_imgmsg(segmented_large_groups, encoding='rgb8')
+        #seg_image_msg.header.stamp = rospy.Time.now()
+
+        msg = self.bridge.cv2_to_imgmsg(image)
+        msg.header.stamp = rospy.Time.now()
+        self.seg_image_pub.publish(msg)
 
 
 if __name__ == "__main__":
