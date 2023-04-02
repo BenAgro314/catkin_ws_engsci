@@ -7,6 +7,7 @@ import numpy as np
 from geometry_msgs.msg import PoseStamped, Twist
 from offboard_py.scripts.utils import are_angles_close, pose_stamped_to_numpy, get_config_from_pose_stamped, se2_pose_list_to_path, shortest_signed_angle, transform_twist
 import warnings
+from visualization_msgs.msg import Marker
 
 class LocalPlannerType(Enum):
     NON_HOLONOMIC = 0
@@ -25,7 +26,7 @@ class LocalPlanner:
         self.ki = np.diag([0.05, 0.05, 0.01, 0.0, 0.0, 0.0])
         self.kd = np.diag([0.3, 0.3, 0.1, 0.2, 0.2, 0.2])
 
-        self.v_max = np.array([1.0, 1.0, 0.5, 2, 2, 2]).T
+        self.v_max = np.array([0.5, 0.5, 0.5, 2, 2, 2]).T
 
         self.prev_time = None
 
@@ -36,6 +37,7 @@ class LocalPlanner:
         self.previous_error = np.zeros((6, 1))
 
 
+
     def get_speed(self, goal_vec: np.array):
         return np.clip(np.linalg.norm(goal_vec), a_min=0, a_max=self.v_max)
 
@@ -44,6 +46,7 @@ class LocalPlanner:
             self.prev_time = rospy.Time.now().to_sec()
             return Twist()
         dt = rospy.Time.now().to_sec() - self.prev_time
+
 
         curr_cfg = get_config_from_pose_stamped(t_map_d)
         goal_cfg = get_config_from_pose_stamped(t_map_d_goal)
@@ -60,7 +63,6 @@ class LocalPlanner:
 
         velocity = proportional + integral + derivative
         velocity = np.clip(velocity, -self.v_max, self.v_max)
-
 
         twist_m = Twist()
         twist_m.linear.x = velocity[0,0]

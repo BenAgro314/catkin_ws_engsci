@@ -292,13 +292,16 @@ class Detector:
                     bbox = [x/scale, y/scale, (x+w)/scale, (y+h)/scale] # x_min, y_min, x_max, y_max
                     p_box_cam =  reproject_2D_to_3D(bbox, 0.3, self.K)
                     #p_box_cam = (0, 0, p_box_cam[2])
+
+                    #middle = (y + h//2)/scale
+                    #if middle > image.shape[0] // 4 and  middle < 3 * image.shape[0] // 4:
                     self.publish_cylinder_marker(np.array([1, 0, 0]), p_box_cam, 0.15, frame_id="imx219")
 
                     percent_green = np.sum(green_mask[y:y+h, x:x+w])/(255 * w * h)
                     percent_red = np.sum(red_mask[y:y+h, x:x+w])/(255 * w * h)
                     if percent_green > 0.03:
                         cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                    elif percent_red > 0.3:
+                    elif percent_red > 0.03:
                         cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
                     else:
                         cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
