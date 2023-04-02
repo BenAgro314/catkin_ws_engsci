@@ -9,6 +9,8 @@ import math
 from nav_msgs.msg import Path, Odometry
 from visualization_msgs.msg import Marker
 import tf.transformations as tf_transform
+from sensor_msgs.msg import PointCloud2, PointField
+import sensor_msgs.point_cloud2 as pc2
 
 class Colors:
     """
@@ -518,3 +520,29 @@ def get_current_directory():
     script_directory = os.path.dirname(script_path)
     
     return script_directory
+
+def numpy_to_pointcloud2(points, frame_id='base_link'):
+    fields = [
+        PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
+        PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
+        PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1)
+    ]
+
+    header = rospy.Header()
+    header.stamp = rospy.Time.now()
+    header.frame_id = frame_id
+
+    return pc2.create_cloud(header, fields, points)
+
+def pointcloud2_to_numpy(pointcloud):
+    """
+    Convert a PointCloud2 message to a NumPy array of points.
+    
+    Parameters:
+    - pointcloud: A sensor_msgs.PointCloud2 message
+    
+    Returns:
+    - points: A NumPy array of shape (N, 3) containing the points
+    """
+    points = np.array(list(pc2.read_points(pointcloud, field_names=('x', 'y', 'z'))))
+    return points

@@ -440,7 +440,7 @@ class RobDroneControl():
 
         while(not rospy.is_shutdown()):
             #self.setpoint_position_pub.publish(self.current_waypoint)
-            self.check_obstacles()
+            #self.check_obstacles()
             self.setpoint_vel_pub.publish(self.compute_twist_command())
             if self.current_waypoint is None or self.pose_is_close(self.current_waypoint, self.current_t_map_dots):
                 #self.queue_lock.acquire()

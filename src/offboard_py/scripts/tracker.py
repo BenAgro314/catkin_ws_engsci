@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-from offboard_py.scripts.utils import get_config_from_transformation, quaternion_to_euler, transform_to_numpy
+from offboard_py.scripts.utils import get_config_from_transformation, pointcloud2_to_numpy, quaternion_to_euler, transform_to_numpy
 import rospy
 import cv2
 import tf2_ros
 import matplotlib.pyplot as plt
 import tf.transformations
+from sensor_msgs.msg import PointCloud2
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 import numpy as np
 from sensor_msgs.msg import Image
@@ -13,8 +14,6 @@ from cv_bridge import CvBridge
 from visualization_msgs.msg import Marker
 from sklearn.cluster import DBSCAN
 from skimage.draw import disk, polygon
-from sensor_msgs.msg import PointCloud2, PointField
-import sensor_msgs.point_cloud2 as pc2
 
 
 def cluster_points(points, eps=0.5, min_samples=5):
@@ -34,25 +33,11 @@ def cluster_points(points, eps=0.5, min_samples=5):
 
     return labels
 
-def numpy_to_pointcloud2(points, frame_id='base_link'):
-    fields = [
-        PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
-        PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
-        PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1)
-    ]
-
-    header = rospy.Header()
-    header.stamp = rospy.Time.now()
-    header.frame_id = frame_id
-
-    return pc2.create_cloud(header, fields, points)
-
 class Tracker:
 
     def __init__(self):
         self.points = None
-        self.cyl_sub= rospy.Subscriber("/cylinder_marker", Marker, callback = self.cyl_callback)
-        self.point_pub = rospy.Publisher("tracker_points", PointCloud2, queue_size=10)
+        self.cyl_sub= rospy.Subscriber("det_points", PointCloud2, callback = self.cyl_callback)
 
         self.tf_buffer = tf2_ros.Buffer()
         tf_listener = tf2_ros.TransformListener(self.tf_buffer)
@@ -69,7 +54,7 @@ class Tracker:
             self.map_shape
         )
         self.alpha = 1.0
-        self.beta = -0.1
+        self.beta = -0.08
         self.fov = (-np.pi/6, np.pi/6)
         self.range = 10
 
@@ -98,27 +83,19 @@ class Tracker:
         self.occ_map_pub.publish(occupancy_grid)
 
     def cyl_callback(self, msg):
-        pos = msg.pose.position
-        pt_imx = np.array([pos.x, pos.y, pos.z, 1])[:, None] # (3, 1)
+        #pos = msg.pose.position
+
+        pos_mask = np.zeros_like(self.logits, dtype = bool)
+        neg_mask = np.zeros_like(self.logits, dtype = bool)
+
+        #pt_imx = np.array([pos.x, pos.y, pos.z, 1])[:, None] # (3, 1)
         t_map_base = self.tf_buffer.lookup_transform(
-           "map", "base_link", rospy.Time(0)).transform
+        "map", "base_link", rospy.Time(0)).transform
         t_base_imx = self.tf_buffer.lookup_transform(
-           "base_link", "imx219", rospy.Time(0)).transform
+        "base_link", "imx219", rospy.Time(0)).transform
         x_base, y_base, _, _, _, yaw_base = get_config_from_transformation(t_map_base)
         t_map_base  = transform_to_numpy(t_map_base)
         t_base_imx  = transform_to_numpy(t_base_imx)
-        t_map_imx = t_map_base @ t_base_imx
-        pt_map =  t_map_imx @ pt_imx
-        pt_map[2, 0] = 0.0 # zero out z
-        if self.points is None:
-            self.points = pt_map[None, :3]
-        else:
-            self.points = np.concatenate((self.points, pt_map[None, :3]), axis = 0)
-        #labels = cluster_points(self.points[:, :, 0])
-        #print(labels)
-
-        #point_cloud = numpy_to_pointcloud2(self.points[:, :, 0], 'map')
-        #self.point_pub.publish(point_cloud)
 
         cam_angle = yaw_base - np.pi / 2
         min_fov_pt = x_base + self.range * np.cos(cam_angle + self.fov[0]), y_base + 10 * np.sin(cam_angle + self.fov[0]), 0
@@ -126,20 +103,29 @@ class Tracker:
         base_ind = self.point_to_ind(np.array([x_base, y_base, 0])[:, None])
         min_fov_ind = self.point_to_ind(np.array(min_fov_pt)[:, None])
         max_fov_ind = self.point_to_ind(np.array(max_fov_pt)[:, None])
-
-
         poly_rr, poly_cc = polygon([base_ind[0], min_fov_ind[0], max_fov_ind[0]], [base_ind[1], min_fov_ind[1], max_fov_ind[1]], shape = self.logits.shape)
-        neg_mask = np.zeros_like(self.logits, dtype = bool)
         neg_mask[poly_rr, poly_cc] = True
 
-        rr, cc = disk(self.point_to_ind(pt_map), 0.3 // self.map_res)
-        pos_mask = np.zeros_like(self.logits, dtype = bool)
-        pos_mask[rr, cc] = True
+
+        imx_points = pointcloud2_to_numpy(msg)
+        for pt_imx in imx_points:
+            pt_imx = np.concatenate((pt_imx[:, None], np.array([[1]])), axis = 0) # (3, 1)
+            t_map_imx = t_map_base @ t_base_imx
+            pt_map =  t_map_imx @ pt_imx
+            pt_map[2, 0] = 0.0 # zero out z
+            if self.points is None:
+                self.points = pt_map[None, :3]
+            else:
+                self.points = np.concatenate((self.points, pt_map[None, :3]), axis = 0)
+
+            rr, cc = disk(self.point_to_ind(pt_map), 0.3 // self.map_res)
+            pos_mask[rr, cc] = True
 
         neg_mask = np.logical_and(neg_mask, ~pos_mask)
 
         self.logits[neg_mask] += self.beta
         self.logits[pos_mask] += self.alpha
+        self.logits = np.clip(self.logits, a_min = -2, a_max = 10)
 
         self.publish_occupancy_grid()
 
