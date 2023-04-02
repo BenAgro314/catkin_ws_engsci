@@ -1,0 +1,55 @@
+<sdf version="1.6">
+  <model name="imx">
+    <link name="base_link">
+      <!-- Define the monocular camera sensor -->
+      <inertial>
+        <pose>0 0 0 0 -0 0</pose>
+        <mass>0.01</mass>
+        <inertia>
+          <ixx>0.001</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.001</iyy>
+          <iyz>0</iyz>
+          <izz>0.001</izz>
+        </inertia>
+      </inertial>
+      <sensor name="monocular_camera" type="camera">
+        <camera>
+          <!-- Image resolution (width and height) -->
+          <image>
+            <width>2068</width>
+            <height>1114</height>
+          </image>
+          <!-- Horizontal field of view (in radians) -->
+          <horizontal_fov>1.047</horizontal_fov>
+          <!-- Clip distances (near and far) -->
+          <clip>
+            <near>0.01</near>
+            <far>100</far>
+          </clip>
+        </camera>
+        <!-- Update rate (in Hz) -->
+        <update_rate>30.0</update_rate>
+        <plugin name='camera_controller' filename='libgazebo_ros_camera.so'>
+          <alwaysOn>1</alwaysOn>
+          <updateRate>30</updateRate>
+          <cameraName></cameraName>
+          <imageTopicName>imx219_image</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>imx219</frameName>
+          <!--hackBaseline>0.07</hackBaseline-->
+          <!--focalLength>1581.5</focalLength-->
+          <distortionK1>-0.3790</distortionK1>
+          <distortionK2>0.2780</distortionK2>
+          <distortionK3>-0.00092</distortionK3>
+          <distortionT1>0.00087</distortionT1>
+          <distortionT2>-0.2183</distortionT2>
+          <CxPrime>1034.7</CxPrime>
+          <Cx>1034.7</Cx>
+          <Cy>557.16</Cy>
+        </plugin>
+      </sensor>
+    </link>
+  </model>
+</sdf>

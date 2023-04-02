@@ -40,6 +40,12 @@ def rotate_image(image, angle):
 
     return rotated_image
 
+def get_mask_from_range(hsv_img, low, high):
+    mask = cv2.inRange(hsv_img, low, high)
+    #kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    #mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    return mask
+
 def reproject_2D_to_3D(bbox, actual_height, K):
     # Extract the focal length (fx) and the optical center (cx, cy) from the intrinsic matrix
     fx = K[0, 0]
@@ -149,79 +155,65 @@ class Detector:
 
     def image_callback(self, msg: Image):
         t_map_base = self.tf_buffer.lookup_transform(
-            "map", "base_link", rospy.Time(0)).transform
+           "map", "base_link", rospy.Time(0)).transform
         q = t_map_base.rotation
         roll, pitch, yaw = quaternion_to_euler(q.x, q.y, q.z, q.w)
-        #print(roll, pitch, yaw)
+        print(roll, pitch, yaw)
 
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='rgb8')
         image = undistort_image(image, self.K, self.D)
-        image = rotate_image(image, -np.rad2deg(roll))
+        image = rotate_image(image, np.rad2deg(pitch))
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
+        sat = hsv_image[:, :, 1]#.astype(np.int16)
+        sat = cv2.equalizeHist(sat)
+        hsv_image[:, :, 1] = sat
+
         # Define the lower and upper bounds for the color yellow in the HSV color space
-        lower_yellow = (10, 0, 0)
+        lower_yellow = (10, 240, 0)
         upper_yellow = (40, 255, 255)
+        
+        lower_red = (0, 0, 0)
+        upper_red = (10, 255, 255)
 
-        # Create a binary mask using the defined yellow range
-        mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
-
-        # Perform morphological operations (optional)
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-
-        # Find connected components and their statistics
-        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=8)
-
-        # Set a threshold for the minimum area of the connected components to keep
-        min_area_threshold = 100000
-
-        # Create a new binary mask to store the filtered connected components
-        filtered_mask = np.zeros_like(mask, dtype=np.uint8)
-
-        # Iterate through the connected components and keep only the large ones
-        for i in range(1, num_labels):  # Start from 1 to skip the background component (label 0)
-            area = stats[i, cv2.CC_STAT_AREA]
-            if area >= min_area_threshold:
-                filtered_mask[labels == i] = 255
-
-        # Use the filtered binary mask to segment the large groups of pixels from the original image
-        segmented_large_groups = cv2.bitwise_and(image, image, mask=filtered_mask)
-
-        # Use the binary mask to segment the yellow regions from the original image
-        #segmented_yellow = cv2.bitwise_and(image, image, mask=mask)
         lower_green = (40, 0, 0)
         upper_green = (80, 255, 255)
-        green_mask = cv2.inRange(hsv_image, lower_green, upper_green)
-        green_mask = cv2.morphologyEx(green_mask, cv2.MORPH_OPEN, kernel)
-        green_only = cv2.bitwise_and(image, image, mask=green_mask)
+
+        # Create a binary mask using the defined yellow range
+        yellow_mask = get_mask_from_range(hsv_image, lower_yellow, upper_yellow)
+        yellow_mask = cv2.blur(yellow_mask, (11, 5))
+        red_mask = get_mask_from_range(hsv_image, lower_red, upper_red)
+        green_mask = get_mask_from_range(hsv_image, lower_green, upper_green)
+        
+
+        #yellow_segment = cv2.bitwise_and(image, image, mask=yellow_mask)
+        #red_segment = cv2.bitwise_and(image, image, mask=red_mask)
+        #green_segment = cv2.bitwise_and(image, image, mask=green_mask)
 
         # Find contours in the binary mask
-        contours, _ = cv2.findContours(filtered_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        for contour in contours:
-            # Calculate the bounding rectangle for the contour
-            x, y, w, h = cv2.boundingRect(contour)
+        yellow_contours, _ = cv2.findContours(yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            bbox = [x, y, x+w, y+h] # x_min, y_min, x_max, y_max
-            p_box_cam =  reproject_2D_to_3D(bbox, 0.3, self.K)
-            #p_box_cam = (0, 0, p_box_cam[2])
-            self.publish_cylinder_marker(np.array([1, 0, 0]), p_box_cam, 0.15, frame_id="imx219")
-            #print(p_box_cam)
-            # Draw the bounding rectangle on the original image or a blank image
-            #cv2.rectangle(segmented_large_groups, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            percent_green = np.sum(green_mask[y:y+h, x:x+w])/(255 * w * h)
-            if percent_green > 0.03:
-                cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            else:
-                cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        min_area = 20000
+        for contour in yellow_contours:
+            area = cv2.contourArea(contour)
+            if area > min_area:
+                x, y, w, h = cv2.boundingRect(contour)
+                aspect_ratio = float(w) / h
+                if 3.0 < aspect_ratio:  # Aspect ratio range for the object of interest
+                    cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    bbox = [x, y, x+w, y+h] # x_min, y_min, x_max, y_max
+                    p_box_cam =  reproject_2D_to_3D(bbox, 0.3, self.K)
+                    #p_box_cam = (0, 0, p_box_cam[2])
+                    self.publish_cylinder_marker(np.array([1, 0, 0]), p_box_cam, 0.15, frame_id="imx219")
 
-        #res_img = np.concatenate((segmented_large_groups, image), axis=1)
-        #res_img = cv2.cvtColor(res_img, cv2.COLOR_BGR2RGB)
-        #cv2.imshow('Segmented Groups', res_img)
-        #cv2.waitKey(1)
-
-        #seg_image_msg = self.bridge.cv2_to_imgmsg(segmented_large_groups, encoding='rgb8')
-        #seg_image_msg.header.stamp = rospy.Time.now()
+                    percent_green = np.sum(green_mask[y:y+h, x:x+w])/(255 * w * h)
+                    percent_red = np.sum(red_mask[y:y+h, x:x+w])/(255 * w * h)
+                    if percent_green > 0.03:
+                        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    elif percent_red > 0.3:
+                        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
+                    else:
+                        cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
         msg = self.bridge.cv2_to_imgmsg(image)
         msg.header.stamp = rospy.Time.now()
