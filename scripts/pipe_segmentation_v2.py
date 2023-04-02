@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import os
 import time
+import imageio
 import glob
 
 #files = ['frame_0137.png', 'frame_0173.png', 'frame_0070.png', 'frame_0304.png']
@@ -14,6 +15,8 @@ K = np.array([[1581.5, 0, 1034.7], # needs to be tuned
                             [0, 0, 1]])
 D = np.array([[-0.37906155, 0.2780121, -0.00092033, 0.00087556, -0.21837157]])
 
+
+images = []
 
 def undistort_image(img, K, D):
     # Undistort the image
@@ -163,7 +166,7 @@ for f in files:
     #cv2.imshow('Green Segment', green_segment)
 
     # Find contours in the binary mask
-    yellow_contours, _ = cv2.findContours(yellow_mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    yellow_contours, _ = cv2.findContours(yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     img_copy = image.copy()
 
@@ -187,6 +190,8 @@ for f in files:
             #cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
             aspect_ratio = float(w) / h
             if 3 < aspect_ratio:  # Aspect ratio range for the object of interest
+
+                # filter out boxes on the top
                 if x == 0 and not x+w > image.shape[1] //2:
                     continue
 
@@ -236,6 +241,7 @@ for f in files:
 
     # # Display the original image with rectangles
     cv2.imshow('Image with Rectangles', image)
+    images.append(image)
     #equalized_image = np.stack([cv2.equalizeHist(hsv_image[:, :, j]) if j in [0] else hsv_image[:, :, j] for j in range(3)], axis = -1)
     #cv2.imshow('Equalize', cv2.cvtColor(equalized_image, cv2.COLOR_HSV2BGR))
     #equalized_image = np.stack([cv2.equalizeHist(image[:, :, j]) for j in range(3)], axis = -1)
@@ -255,3 +261,6 @@ for f in files:
 
 
     cv2.waitKey(1)
+
+cv2.destroyAllWindows()
+imageio.mimsave("out.mp4", [cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in images], fps=10)

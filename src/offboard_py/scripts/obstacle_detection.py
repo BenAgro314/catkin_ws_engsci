@@ -24,6 +24,62 @@ def undistort_image(img, K, D):
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
 
+def scale_image(img, scale):
+    width = int(img.shape[1] * scale)
+    height = int(img.shape[0] * scale)
+    dim = (width, height)
+    resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+    return resized
+
+def get_iou(bb1, bb2):
+    """
+    Calculate the Intersection over Union (IoU) of two bounding boxes.
+
+    Parameters
+    ----------
+    bb1 : dict
+        Keys: {'x1', 'x2', 'y1', 'y2'}
+        The (x1, y1) position is at the top left corner,
+        the (x2, y2) position is at the bottom right corner
+    bb2 : dict
+        Keys: {'x1', 'x2', 'y1', 'y2'}
+        The (x, y) position is at the top left corner,
+        the (x2, y2) position is at the bottom right corner
+
+    Returns
+    -------
+    float
+        in [0, 1]
+    """
+    assert bb1['x1'] < bb1['x2']
+    assert bb1['y1'] < bb1['y2']
+    assert bb2['x1'] < bb2['x2']
+    assert bb2['y1'] < bb2['y2']
+
+    # determine the coordinates of the intersection rectangle
+    x_left = max(bb1['x1'], bb2['x1'])
+    y_top = max(bb1['y1'], bb2['y1'])
+    x_right = min(bb1['x2'], bb2['x2'])
+    y_bottom = min(bb1['y2'], bb2['y2'])
+
+    if x_right < x_left or y_bottom < y_top:
+        return 0.0
+
+    # The intersection of two axis-aligned bounding boxes is always an
+    # axis-aligned bounding box
+    intersection_area = (x_right - x_left) * (y_bottom - y_top)
+
+    # compute the area of both AABBs
+    bb1_area = (bb1['x2'] - bb1['x1']) * (bb1['y2'] - bb1['y1'])
+    bb2_area = (bb2['x2'] - bb2['x1']) * (bb2['y2'] - bb2['y1'])
+
+    # compute the intersection over union by taking the intersection
+    # area and dividing it by the sum of prediction + ground-truth
+    # areas - the interesection area
+    iou = intersection_area / float(bb1_area + bb2_area - intersection_area)
+    assert iou >= 0.0
+    assert iou <= 1.0
+    return iou
 
 def rotate_image(image, angle):
     # Get the dimensions of the image
@@ -88,6 +144,8 @@ class Detector:
         # Define the source and target frames
         self.source_frame = 'map'
         self.target_frame = 'base_link'
+
+        self.prev_rects = []
 
         # Wait for the transform to become available
         #rospy.loginfo("Waiting for transform from {} to {}".format(source_frame, target_frame))
@@ -158,11 +216,12 @@ class Detector:
            "map", "base_link", rospy.Time(0)).transform
         q = t_map_base.rotation
         roll, pitch, yaw = quaternion_to_euler(q.x, q.y, q.z, q.w)
-        print(roll, pitch, yaw)
 
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='rgb8')
         image = undistort_image(image, self.K, self.D)
         image = rotate_image(image, np.rad2deg(pitch))
+        scale = 0.5
+        image = scale_image(image, scale)
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
         sat = hsv_image[:, :, 1]#.astype(np.int16)
@@ -170,8 +229,8 @@ class Detector:
         hsv_image[:, :, 1] = sat
 
         # Define the lower and upper bounds for the color yellow in the HSV color space
-        lower_yellow = (10, 240, 0)
-        upper_yellow = (40, 255, 255)
+        lower_yellow = (3, 240, 0)
+        upper_yellow = (80, 255, 255)
         
         lower_red = (0, 0, 0)
         upper_red = (10, 255, 255)
@@ -181,7 +240,7 @@ class Detector:
 
         # Create a binary mask using the defined yellow range
         yellow_mask = get_mask_from_range(hsv_image, lower_yellow, upper_yellow)
-        yellow_mask = cv2.blur(yellow_mask, (11, 5))
+        yellow_mask = cv2.blur(yellow_mask, (21, 5))
         red_mask = get_mask_from_range(hsv_image, lower_red, upper_red)
         green_mask = get_mask_from_range(hsv_image, lower_green, upper_green)
         
@@ -193,15 +252,43 @@ class Detector:
         # Find contours in the binary mask
         yellow_contours, _ = cv2.findContours(yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        min_area = 20000
+        min_area = 30000 * scale
         for contour in yellow_contours:
             area = cv2.contourArea(contour)
             if area > min_area:
                 x, y, w, h = cv2.boundingRect(contour)
+                #x /= scale
+                #y /= scale
+                #w /= scale
+                #h /= scale
                 aspect_ratio = float(w) / h
                 if 3.0 < aspect_ratio:  # Aspect ratio range for the object of interest
+                    # filter out boxes on the top
+                    if x == 0 and not x+w > image.shape[1] //2:
+                        continue
+                    max_iou = 0
+                    for x_other, y_other, w_other, h_other in self.prev_rects:
+                        bbox_curr = {
+                            "x1": 0,
+                            "x2": 0+w,
+                            "y1": 0,
+                            "y2": 0+h,
+                        }
+                        bbox_other = {
+                            "x1": 0,
+                            "x2": 0+w_other,
+                            "y1": 0,
+                            "y2": 0+h_other,
+                        }
+                        iou = get_iou(bbox_curr, bbox_other)
+                        if iou > max_iou:
+                            max_iou = iou
+                    #print(max_iou)
+                    if max_iou < 0.80: # must find match in previous frame
+                        continue
+
                     cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                    bbox = [x, y, x+w, y+h] # x_min, y_min, x_max, y_max
+                    bbox = [x/scale, y/scale, (x+w)/scale, (y+h)/scale] # x_min, y_min, x_max, y_max
                     p_box_cam =  reproject_2D_to_3D(bbox, 0.3, self.K)
                     #p_box_cam = (0, 0, p_box_cam[2])
                     self.publish_cylinder_marker(np.array([1, 0, 0]), p_box_cam, 0.15, frame_id="imx219")
@@ -214,6 +301,16 @@ class Detector:
                         cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
                     else:
                         cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+        self.prev_rects = []
+
+        for contour in yellow_contours:
+            area = cv2.contourArea(contour)
+            if area > min_area:
+                x, y, w, h = cv2.boundingRect(contour)
+                aspect_ratio = float(w) / h
+                if 3 < aspect_ratio:
+                    self.prev_rects.append((x, y, w, h))
 
         msg = self.bridge.cv2_to_imgmsg(image)
         msg.header.stamp = rospy.Time.now()
