@@ -19,7 +19,7 @@ import tf2_ros
 from visualization_msgs.msg import Marker
 
 USE_SLERP=False
-USE_ORIENTATION=False
+USE_ORIENTATION=True
 STABILIZE_ORIENTATION=True
 PERP=True
 BUILD_MAP=False
@@ -316,14 +316,8 @@ class RobDroneControl():
                     yaw = np.arctan2(y2 - y1, x2 - x1)
 
                     if PERP:
-                        if yaw >= np.pi/4 and yaw < 3 * np.pi/4:
-                            yaw = np.pi
-                        elif yaw >= 3 * np.pi/4 or yaw <= - 3*np.pi/4:
-                            yaw = -np.pi/2
-                        elif yaw < np.pi/4 and yaw >= -np.pi/4:
-                            yaw = -np.pi/2
-                        else:
-                            yaw = 0.0
+                        yaw += np.pi/2
+
                     if i == 0:
                         p1 = config_to_transformation_matrix(x1, y1, z1, yaw)
                         p2 = config_to_transformation_matrix(x2, y2, z2, yaw)

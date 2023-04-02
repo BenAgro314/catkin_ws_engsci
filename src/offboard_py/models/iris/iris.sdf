@@ -593,6 +593,5 @@
       </axis>
     </joint>
 
-    </link>
   </model>
 </sdf>

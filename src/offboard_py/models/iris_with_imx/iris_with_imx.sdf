@@ -555,12 +555,14 @@
       </control_channels>
     </plugin>
     <static>0</static>
+
     <include>
       <uri>model://imx219</uri>
-    <pose>0.12 0 1 0 0 0</pose>
+    <pose>0 -0.1 -0.1 1.5707 0 -1.5707</pose>
     </include>
+
     <joint name="camera_joint" type="revolute">
-      <child>imx::imx_base_link</child>
+      <child>imx::base_link</child>
       <parent>base_link</parent>
       <axis>
         <xyz>0 0 1</xyz>

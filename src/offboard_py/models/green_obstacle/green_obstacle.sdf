@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <model name="green_obstacle">
+    <link name="base_link">
+      <!-- Visual properties of the cylinder -->
+      <visual name="cylinder_visual">
+        <pose>0 0 1.1 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.15</radius>
+            <length>2.2</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>1 1 0 1</ambient>
+          <diffuse>1 1 0 1</diffuse>
+          <specular>0.5 0.5 0.5 1</specular>
+          <emissive>0 0 0 0</emissive>
+        </material>
+      </visual>
+
+      <!-- Physical properties of the cylinder -->
+      <collision name="cylinder_collision">
+        <pose>0 0 1.1 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.15</radius>
+            <length>2.2</length>
+          </cylinder>
+        </geometry>
+      </collision>
+
+      <!-- Inertial properties of the cylinder -->
+      <inertial>
+        <pose>0 0 1.1 0 0 0</pose>
+        <mass>10</mass>
+        <inertia>
+          <ixx>0.1541</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.1541</iyy>
+          <iyz>0</iyz>
+          <izz>0.0169</izz>
+        </inertia>
+      </inertial>
+    </link>
+  </model>
+</sdf>

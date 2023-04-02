@@ -14,6 +14,20 @@
           <izz>0.001</izz>
         </inertia>
       </inertial>
+      <visual name="base_link_visual">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.05 0.05 0.1</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>1 0 0 1</ambient>
+          <diffuse>1 0 0 1</diffuse>
+          <specular>0.5 0.5 0.5 1</specular>
+          <emissive>0 0 0 0</emissive>
+        </material>
+      </visual>
       <sensor name="monocular_camera" type="camera">
         <camera>
           <!-- Image resolution (width and height) -->
