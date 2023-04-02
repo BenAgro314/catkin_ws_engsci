@@ -218,12 +218,12 @@ class Detector:
         roll, pitch, yaw = quaternion_to_euler(q.x, q.y, q.z, q.w)
 
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='rgb8')
-        #image = undistort_image(image, self.K, self.D)
+        image = undistort_image(image, self.K, self.D)
         image = rotate_image(image, np.rad2deg(pitch))
         scale = 1.0
         image = scale_image(image, scale)
-        #hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        #hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
         sat = hsv_image[:, :, 1]#.astype(np.int16)
         sat = cv2.equalizeHist(sat)
@@ -253,7 +253,7 @@ class Detector:
         # Find contours in the binary mask
         yellow_contours, _ = cv2.findContours(yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        min_area = 30000 * scale
+        min_area = 40000 * scale
         for contour in yellow_contours:
             area = cv2.contourArea(contour)
             if area > min_area:
@@ -288,23 +288,24 @@ class Detector:
                     if max_iou < 0.80: # must find match in previous frame
                         continue
 
-                    cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                    bbox = [x/scale, y/scale, (x+w)/scale, (y+h)/scale] # x_min, y_min, x_max, y_max
-                    p_box_cam =  reproject_2D_to_3D(bbox, 0.3, self.K)
-                    #p_box_cam = (0, 0, p_box_cam[2])
-
-                    #middle = (y + h//2)/scale
-                    #if middle > image.shape[0] // 4 and  middle < 3 * image.shape[0] // 4:
-                    self.publish_cylinder_marker(np.array([1, 0, 0]), p_box_cam, 0.15, frame_id="imx219")
-
-                    percent_green = np.sum(green_mask[y:y+h, x:x+w])/(255 * w * h)
-                    percent_red = np.sum(red_mask[y:y+h, x:x+w])/(255 * w * h)
-                    if percent_green > 0.03:
+                    if y > image.shape[0]//5 and (y + h) < 4 * image.shape[0] // 5:
                         cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                    elif percent_red > 0.03:
-                        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
-                    else:
-                        cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                        bbox = [x/scale, y/scale, (x+w)/scale, (y+h)/scale] # x_min, y_min, x_max, y_max
+                        p_box_cam =  reproject_2D_to_3D(bbox, 0.3, self.K)
+                        #p_box_cam = (0, 0, p_box_cam[2])
+
+                        #middle = (y + h//2)/scale
+                        #if middle > image.shape[0] // 4 and  middle < 3 * image.shape[0] // 4:
+                        self.publish_cylinder_marker(np.array([1, 0, 0]), p_box_cam, 0.15, frame_id="imx219")
+
+                        percent_green = np.sum(green_mask[y:y+h, x:x+w])/(255 * w * h)
+                        percent_red = np.sum(red_mask[y:y+h, x:x+w])/(255 * w * h)
+                        if percent_green > 0.03:
+                            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                        elif percent_red > 0.03:
+                            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
+                        else:
+                            cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
         self.prev_rects = []
 
@@ -316,7 +317,8 @@ class Detector:
                 if 3 < aspect_ratio:
                     self.prev_rects.append((x, y, w, h))
 
-        msg = self.bridge.cv2_to_imgmsg(cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+        #msg = self.bridge.cv2_to_imgmsg(cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+        msg = self.bridge.cv2_to_imgmsg(image)
         msg.header.stamp = rospy.Time.now()
         self.seg_image_pub.publish(msg)
 

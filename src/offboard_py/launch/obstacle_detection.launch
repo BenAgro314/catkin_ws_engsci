@@ -2,6 +2,7 @@
   <!-- Run the pose_to_tf node -->
   <node name="pose_to_tf" pkg="t265_stereo" type="tf_pub.py" output="screen"/>
   <node name="obstacle_detector" pkg="offboard_py" type="obstacle_detection.py" output="screen"/>
+  <node name="tracker" pkg="offboard_py" type="tracker.py" output="screen"/>
   <!--node name="mapping_node" pkg="t265_stereo" type="mapping.py" output="screen"/-->
 
   <!-- Publish a static transformation between base_link and camera_odom_frame -->

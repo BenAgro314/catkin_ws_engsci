@@ -4,7 +4,7 @@ from tf.transformations import quaternion_matrix, quaternion_from_matrix
 import os
 import yaml
 import tf_conversions
-from geometry_msgs.msg import PoseStamped, TransformStamped, Pose, Quaternion, Twist, PoseArray
+from geometry_msgs.msg import PoseStamped, TransformStamped, Pose, Quaternion, Twist, PoseArray, Transform
 import math
 from nav_msgs.msg import Path, Odometry
 from visualization_msgs.msg import Marker
@@ -43,8 +43,12 @@ def pose_to_numpy(pose):
 
 def transform_stamped_to_numpy(transform_stamped: TransformStamped):
     # Extract translation and rotation from the TransformStamped message
-    translation = transform_stamped.transform.translation
-    rotation = transform_stamped.transform.rotation
+    return transform_to_numpy(transform_stamped.transform)
+
+def transform_to_numpy(transform: Transform):
+    # Extract translation and rotation from the TransformStamped message
+    translation = transform.translation
+    rotation = transform.rotation
 
     # Convert quaternion to rotation matrix
     rotation_matrix = quaternion_matrix([rotation.x, rotation.y, rotation.z, rotation.w])
@@ -179,6 +183,17 @@ def pose_stamped_to_transform_stamped(pose_stamped: PoseStamped, parent_frame_id
     transform_stamped.transform.rotation.w = pose_stamped.pose.orientation.w
 
     return transform_stamped
+
+def get_config_from_transformation(t):
+    q = t.rotation
+    x = t.translation.x
+    y = t.translation.y
+    z = t.translation.z
+
+    # Convert the quaternion to Euler angles (roll, pitch, yaw)
+    roll, pitch, yaw = quaternion_to_euler(q.x, q.y, q.z, q.w)
+
+    return np.array([x, y, z, roll, pitch, yaw])
 
 def get_config_from_pose(pose):
     q = pose.orientation
