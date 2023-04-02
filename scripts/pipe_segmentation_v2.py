@@ -126,6 +126,7 @@ for f in files:
     sat = hsv_image[:, :, 1]#.astype(np.int16)
     sat = cv2.equalizeHist(sat)
     hsv_image[:, :, 1] = sat
+    print(image.shape)
     #print(sat.min(), sat.max())
     #cv2.imshow('Sat', sat)
     #target_hue = 30
