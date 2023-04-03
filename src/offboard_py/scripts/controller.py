@@ -51,7 +51,7 @@ class Controller:
         self.integral = self.integral + error * dt
         self.integral = np.clip(self.integral, -self.max_integral, self.max_integral)
         integral = self.ki @ self.integral
-        derivative = self.kd @ ((error - self.previous_error) / dt)
+        derivative = self.kd @ ((error - self.previous_error) / (dt + 1e-9))
 
         velocity = proportional + integral + derivative
         velocity = np.clip(velocity, -self.v_max, self.v_max)

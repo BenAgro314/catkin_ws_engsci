@@ -13,6 +13,7 @@ from std_msgs.msg import Header
 import random
 from scipy.spatial import KDTree
 import heapq
+from skimage.draw import disk
 
 # idea:
 # - takes in current waypoint and current drone pose (in map frame)
@@ -90,6 +91,7 @@ class LocalPlanner:
 
         self.map_lock = Lock()
         self.path_pub = rospy.Publisher('local_plan', Path, queue_size=10)
+        self.vehicle_radius = 0.3
         pass
 
     def point_to_ind(self, pt):
@@ -127,17 +129,42 @@ class LocalPlanner:
             self.map = np.array(map_msg.data, dtype=np.uint8).reshape((self.map_height, self.map_width, 1))
         pass
 
-    def occupancy_grid_to_graph(self, grid, threshold=50):
+    def occupancy_grid_to_graph(self, grid, collision_fn):
         height, width = self.map_height, self.map_width
         graph = nx.grid_2d_graph(height, width)
         for y in range(height):
             for x in range(width):
-                if grid[y, x] > threshold:
+                if collision_fn(np.array([y, x])):
                     graph.remove_node((y, x))
 
         return graph
 
+    def inds_to_robot_circle(self, inds):
+        radius = self.vehicle_radius / self.map_res # radius in px
 
+        N = inds.shape[0]
+        indexings = np.arange(np.floor(-radius), np.ceil(radius),dtype=np.int64)
+
+        # Creates a addition map that adds onto center point to produce points in circle
+        x_indexings, y_indexings= np.meshgrid(indexings,indexings)
+        x_indexings = np.tile(x_indexings.ravel(order='F'),(N,1)) # (N,len_indexings^2)
+        y_indexings = np.tile(y_indexings.ravel(order='F'),(N,1)) # (N,len_indexings^2)
+        distances = np.sqrt(x_indexings**2 + y_indexings**2) # (N,len_indexings^2)
+
+        x_circlePts = np.tile(inds[:,1],(x_indexings.shape[1],1)).T + x_indexings # (N,len_indexings^2)
+        y_circlePts = np.tile(inds[:,0],(y_indexings.shape[1],1)).T  + y_indexings # (N,len_indexings^2)
+
+        x_circlePts = x_circlePts[distances < radius].reshape((N,-1))
+        x_circlePts[x_circlePts >= self.map_width] = self.map_width-1
+        x_circlePts[x_circlePts<0]=0
+
+        y_circlePts = y_circlePts[distances < radius].reshape((N,-1))
+        y_circlePts[y_circlePts >= self.map_height] = self.map_height-1
+        y_circlePts[y_circlePts<0]=0
+        
+        circlePts = np.stack((y_circlePts,x_circlePts),axis=-1) # (num_pts, num_pts_per_circle, 2)
+
+        return circlePts # (num_pts, num_pts_per_circle, 2)
 
     def get_plan(self, t_map_d: PoseStamped, t_map_d_goal: PoseStamped) -> Path:
         with self.map_lock:
@@ -145,38 +172,55 @@ class LocalPlanner:
                 return Path()
             occ_map = self.map.copy()
 
-            
         x1,y1 = get_config_from_pose_stamped(t_map_d)[:2]
         x2,y2,z2, _, _, yaw = get_config_from_pose_stamped(t_map_d_goal)
 
         r1, c1 = self.point_to_ind(np.array([x1, y1, 0])[:, None])
         r2, c2 = self.point_to_ind(np.array([x2, y2, 0])[:, None])
 
+
+
         def collision_fn(pt):
             if len(pt.shape) == 2:
                 pts = np.round(pt).astype(np.int32)
-                rows = pts[:, 0]
-                cols = pts[:, 1]
-                return occ_map[rows, cols] > 50
             else:
                 row=int(round(pt[0]))
                 col=int(round(pt[1]))
-                return occ_map[row, col] > 50
+                pts = np.array([row, col])[None, :] # (1, 2)
+            circle_pts = self.inds_to_robot_circle(pts)
+            rows = circle_pts[..., 0]
+            cols = circle_pts[..., 1]
+            return np.any(occ_map[rows, cols] > 60)
 
+            
         start = np.array([r1, c1])
         goal = np.array([r2, c2])
-        st = coll_free(start, goal, collision_fn, steps=int(round(np.linalg.norm(start - goal))))
+        st = coll_free(start, goal, collision_fn, steps=10)
+
         if st: 
-            path = [start, goal] 
+            shorter_path = [start, goal] 
         else:
-            samples = np.random.rand(1000, 2) * np.array([self.map_height, self.map_width])[None]
-            print(samples)
-            samples = samples.astype(np.int32)
-            samples = np.concatenate((start[None], goal[None], samples), axis = 0)
-            t = time.time()
-            path = prm_star(0, 1, collision_fn, samples)
-            print(f"PRM* Time: {time.time() - t}")
-        path_msg = self.path_to_path_message(path, z2, yaw, frame_id='map')
+            start_time = time.time()
+            graph = self.occupancy_grid_to_graph(occ_map, collision_fn)
+            path = nx.astar_path(graph, (r1, c1), (r2, c2), heuristic=lambda a, b: np.linalg.norm(np.array(a) - np.array(b)))
+            dt = time.time() - start_time
+
+            if len(path) == 1:
+                path = path + path
+
+            # shorten path
+            shorter_path = []
+            i = 0
+            while i < len(path):
+                shorter_path.append(path[i])
+                j = i+1
+                while j < len(path)-1 and coll_free(path[i], path[j], collision_fn):
+                    j+=1
+                i = j
+            print(f"Astar time: {dt}")
+
+        path_msg = self.path_to_path_message(shorter_path, z2, yaw, frame_id='map')
+        path_msg.poses[-1] = t_map_d_goal # correct for map resolution
 
         self.path_pub.publish(path_msg)
         return path_msg
