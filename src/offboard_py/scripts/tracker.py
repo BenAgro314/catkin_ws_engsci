@@ -58,6 +58,7 @@ class Tracker:
         self.beta = -0.05
         self.fov = (-np.pi/8, np.pi/8)
         self.range = 10
+        self.wall_width = 0.1
 
     def publish_occupancy_grid(self):
         map = np.exp(self.logits) / (1 + np.exp(self.logits))
@@ -156,6 +157,12 @@ class Tracker:
         self.logits[neg_mask] += self.beta
         self.logits[pos_mask] += self.alpha
         self.logits = np.clip(self.logits, a_min = -2, a_max = 10)
+
+        width_inds = int(round(self.wall_width/self.map_res))
+        self.logits[-width_inds:] = 10
+        self.logits[:, -width_inds:] = 10
+        self.logits[:width_inds] = 10
+        self.logits[:, :width_inds] = 10
 
         self.publish_occupancy_grid()
 
