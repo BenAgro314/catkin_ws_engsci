@@ -102,6 +102,28 @@ def numpy_to_pose_stamped(transformation_matrix, frame_id="parent_frame"):
 
     return pose_stamped
 
+def numpy_to_pose(transformation_matrix):
+    # Check if the input is a 4x4 matrix
+    if transformation_matrix.shape != (4, 4):
+        raise ValueError("The input must be a 4x4 NumPy array")
+
+    # Extract position and rotation components
+    position = transformation_matrix[:3, 3]
+    quaternion = quaternion_from_matrix(transformation_matrix)
+
+    # Create a PoseStamped message
+    pose = Pose()
+
+    pose.position.x = position[0]
+    pose.position.y = position[1]
+    pose.position.z = position[2]
+
+    pose.orientation.x = quaternion[0]
+    pose.orientation.y = quaternion[1]
+    pose.orientation.z = quaternion[2]
+    pose.orientation.w = quaternion[3]
+    return pose
+
 def numpy_to_transform_stamped(transformation_matrix, frame_id="parent_frame", child_frame_id=""):
     # Check if the input is a 4x4 matrix
     if transformation_matrix.shape != (4, 4):
@@ -295,6 +317,23 @@ def config_to_transformation_matrix(x, y, z, yaw):
     ])
 
     return T
+
+def config_to_pose(x, y, z, yaw):
+    """
+    Creates a 4x4 transformation matrix from an (x, y, z, yaw) tuple.
+    """
+    return numpy_to_pose(config_to_transformation_matrix(x, y, z, yaw))
+
+def config_to_pose_stamped(x, y, z, yaw, frame_id):
+    """
+    Creates a 4x4 transformation matrix from an (x, y, z, yaw) tuple.
+    """
+    pose = numpy_to_pose(config_to_transformation_matrix(x, y, z, yaw))
+    pose_stamped = PoseStamped()
+    pose_stamped.pose = pose
+    pose_stamped.header.stamp = rospy.Time.now()
+    pose_stamped.header.frame_id = frame_id
+    return pose_stamped
 
 def se2_pose_list_to_path(pose_list, ref_frame):
     # convert a list of poses to a path

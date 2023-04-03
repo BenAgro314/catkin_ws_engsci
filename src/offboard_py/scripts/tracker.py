@@ -54,7 +54,7 @@ class Tracker:
             self.map_shape
         )
         self.alpha = 1.0
-        self.beta = -0.08
+        self.beta = -0.05
         self.fov = (-np.pi/6, np.pi/6)
         self.range = 10
 
@@ -111,7 +111,7 @@ class Tracker:
         for pt_imx in imx_points:
             pt_imx = np.concatenate((pt_imx[:, None], np.array([[1]])), axis = 0) # (3, 1)
             t_map_imx = t_map_base @ t_base_imx
-            pt_map =  t_map_imx @ pt_imx
+            pt_map = t_map_imx @ pt_imx
             pt_map[2, 0] = 0.0 # zero out z
             if self.points is None:
                 self.points = pt_map[None, :3]
