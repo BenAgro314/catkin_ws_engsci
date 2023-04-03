@@ -153,7 +153,6 @@ class Tracker:
 
         neg_mask = np.logical_and(neg_mask, ~pos_mask)
 
-        self.logits[:, :] = 0
         self.logits[neg_mask] += self.beta
         self.logits[pos_mask] += self.alpha
         self.logits = np.clip(self.logits, a_min = -2, a_max = 10)
