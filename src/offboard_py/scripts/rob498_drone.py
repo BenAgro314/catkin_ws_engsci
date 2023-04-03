@@ -46,7 +46,7 @@ class RobDroneControl():
         self.received_waypoints: Optional[PoseArray] = None # PoseArray
 
         # TODO: make these arguments / config files
-        self.waypoint_trans_ths = 0.15 # 0.08 # used in pose_is_close
+        self.waypoint_trans_ths = 0.08 # 0.08 # used in pose_is_close
         self.waypoint_yaw_ths = np.deg2rad(10.0) # used in pose_is_close
         self.on_ground_ths = 0.2
         self.launch_height = 1.6475 # check this
@@ -86,6 +86,7 @@ class RobDroneControl():
         self.waypoint_queue_lock = Lock()
         self.current_pose_lock = Lock()
         self.len_waypoint_queue = 0
+        self.local_path = None
 
         self.marker_pub = rospy.Publisher('sphere_marker', Marker, queue_size=10)
         self.t_dots_base = np.array(
@@ -389,8 +390,10 @@ class RobDroneControl():
     def compute_twist_command(self):
         if self.current_waypoint is None:
             return Twist()
-        path = self.local_planner.get_plan(self.current_t_map_dots, self.current_waypoint)
-        curr_goal = path.poses[1] # first pose on the list
+        #if self.local_path is None or self.pose_is_close(self.local_path.poses[1], self.current_t_map_dots):
+        #self.local_path = self.local_planner.get_plan(self.current_t_map_dots, self.current_waypoint)
+        #curr_goal = self.local_path.poses[1] # first pose on the list
+        curr_goal = self.current_waypoint
         twist_dots = self.controller.get_twist(self.current_t_map_dots, curr_goal)
         twist_base = transform_twist(twist_dots, self.t_base_dots)
         if not STABILIZE_ORIENTATION and not USE_ORIENTATION: # no angular velocity cmd

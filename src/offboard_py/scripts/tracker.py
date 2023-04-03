@@ -12,26 +12,8 @@ import numpy as np
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from visualization_msgs.msg import Marker
-from sklearn.cluster import DBSCAN
 from skimage.draw import disk, polygon
 
-
-def cluster_points(points, eps=0.5, min_samples=5):
-    """
-    Cluster points using the DBSCAN algorithm.
-    
-    Parameters:
-    - points: NumPy array of shape (N, 3) containing the points to cluster.
-    - eps: The maximum distance between two samples for them to be considered as in the same neighborhood (default: 0.5).
-    - min_samples: The number of samples in a neighborhood for a point to be considered as a core point (default: 5).
-    
-    Returns:
-    - labels: NumPy array of shape (N,) containing the cluster labels for each point.
-    """
-    clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(points)
-    labels = clustering.labels_
-
-    return labels
 
 class Tracker:
 
@@ -91,6 +73,7 @@ class Tracker:
         neg_mask = np.zeros_like(self.logits, dtype = bool)
 
         #pt_imx = np.array([pos.x, pos.y, pos.z, 1])[:, None] # (3, 1)
+        self.tf_buffer.can_transform('map', 'base_link', rospy.Time(0), timeout=rospy.Duration(5))
         t_map_base = self.tf_buffer.lookup_transform(
         "map", "base_link", rospy.Time(0)).transform
         t_base_imx = self.tf_buffer.lookup_transform(
