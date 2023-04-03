@@ -91,7 +91,7 @@ class LocalPlanner:
 
         self.map_lock = Lock()
         self.path_pub = rospy.Publisher('local_plan', Path, queue_size=10)
-        self.vehicle_radius = 0.3
+        self.vehicle_radius = 0.6
         pass
 
     def point_to_ind(self, pt):
@@ -132,10 +132,16 @@ class LocalPlanner:
     def occupancy_grid_to_graph(self, grid, collision_fn):
         height, width = self.map_height, self.map_width
         graph = nx.grid_2d_graph(height, width)
-        for y in range(height):
-            for x in range(width):
-                if collision_fn(np.array([y, x])):
-                    graph.remove_node((y, x))
+
+        y = range(height)
+        x = range(width)
+        yxs = np.stack(np.meshgrid(range(height), range(width)), axis = 0).reshape(2, -1).T
+
+        cols = collision_fn(yxs)
+        print(cols.shape, yxs.shape)
+        for (y,x), col in zip(yxs, cols):
+            if col:
+                graph.remove_node((y, x))
 
         return graph
 
@@ -179,7 +185,6 @@ class LocalPlanner:
         r2, c2 = self.point_to_ind(np.array([x2, y2, 0])[:, None])
 
 
-
         def collision_fn(pt):
             if len(pt.shape) == 2:
                 pts = np.round(pt).astype(np.int32)
@@ -190,7 +195,7 @@ class LocalPlanner:
             circle_pts = self.inds_to_robot_circle(pts)
             rows = circle_pts[..., 0]
             cols = circle_pts[..., 1]
-            return np.any(occ_map[rows, cols] > 60)
+            return np.any(occ_map[rows, cols] > 60, axis = 1)
 
             
         start = np.array([r1, c1])
