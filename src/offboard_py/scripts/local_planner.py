@@ -138,7 +138,6 @@ class LocalPlanner:
         yxs = np.stack(np.meshgrid(range(height), range(width)), axis = 0).reshape(2, -1).T
 
         cols = collision_fn(yxs)
-        print(cols.shape, yxs.shape)
         for (y,x), col in zip(yxs, cols):
             if col:
                 graph.remove_node((y, x))
