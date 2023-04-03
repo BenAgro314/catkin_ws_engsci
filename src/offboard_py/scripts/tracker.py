@@ -53,9 +53,10 @@ class Tracker:
         self.logits = np.zeros(
             self.map_shape
         )
+        self.radius=0.3
         self.alpha = 1.0
         self.beta = -0.05
-        self.fov = (-np.pi/6, np.pi/6)
+        self.fov = (-np.pi/8, np.pi/8)
         self.range = 10
 
     def publish_occupancy_grid(self):
@@ -98,31 +99,61 @@ class Tracker:
         t_base_imx  = transform_to_numpy(t_base_imx)
 
         cam_angle = yaw_base - np.pi / 2
-        min_fov_pt = x_base + self.range * np.cos(cam_angle + self.fov[0]), y_base + 10 * np.sin(cam_angle + self.fov[0]), 0
-        max_fov_pt = x_base + self.range * np.cos(cam_angle + self.fov[1]), y_base + 10 * np.sin(cam_angle + self.fov[1]), 0
+        min_fov_pt = x_base + self.range * np.cos(cam_angle + self.fov[0]), y_base + self.range * np.sin(cam_angle + self.fov[0]), 0
+        max_fov_pt = x_base + self.range * np.cos(cam_angle + self.fov[1]), y_base + self.range * np.sin(cam_angle + self.fov[1]), 0
         base_ind = self.point_to_ind(np.array([x_base, y_base, 0])[:, None])
         min_fov_ind = self.point_to_ind(np.array(min_fov_pt)[:, None])
         max_fov_ind = self.point_to_ind(np.array(max_fov_pt)[:, None])
-        poly_rr, poly_cc = polygon([base_ind[0], min_fov_ind[0], max_fov_ind[0]], [base_ind[1], min_fov_ind[1], max_fov_ind[1]], shape = self.logits.shape)
-        neg_mask[poly_rr, poly_cc] = True
-
 
         imx_points = pointcloud2_to_numpy(msg)
-        for pt_imx in imx_points:
-            pt_imx = np.concatenate((pt_imx[:, None], np.array([[1]])), axis = 0) # (3, 1)
-            t_map_imx = t_map_base @ t_base_imx
-            pt_map = t_map_imx @ pt_imx
-            pt_map[2, 0] = 0.0 # zero out z
-            if self.points is None:
-                self.points = pt_map[None, :3]
-            else:
-                self.points = np.concatenate((self.points, pt_map[None, :3]), axis = 0)
+        if len(imx_points) == 0:
+            poly_rr, poly_cc = polygon([base_ind[0], min_fov_ind[0], max_fov_ind[0]], [base_ind[1], min_fov_ind[1], max_fov_ind[1]], shape = self.logits.shape)
+            neg_mask[poly_rr, poly_cc] = True
+        else:
+            for pt_imx in imx_points:
+                pt_imx = np.concatenate((pt_imx[:, None], np.array([[1]])), axis = 0) # (3, 1)
+                pt_imx_left = pt_imx.copy()
+                pt_imx_right = pt_imx.copy()
 
-            rr, cc = disk(self.point_to_ind(pt_map), 0.3 // self.map_res)
-            pos_mask[rr, cc] = True
+                pt_imx_left[0] -= self.radius
+                pt_imx_right[0] += self.radius
+
+                t_map_imx = t_map_base @ t_base_imx
+
+                pt_map_left = t_map_imx @ pt_imx_left
+                pt_map_right = t_map_imx @ pt_imx_right
+
+                pt_map_left[2, 0] = 0.0
+                pt_map_right[2, 0] = 0.0
+
+                left_ind = self.point_to_ind(pt_map_left)                 
+                right_ind = self.point_to_ind(pt_map_right)                 
+
+                angle_left = np.arctan2(pt_map_left[1] - y_base, pt_map_left[0] - x_base)
+                angle_right = np.arctan2(pt_map_right[1] - y_base, pt_map_right[0] - x_base)
+
+                left_fov_pt = x_base + self.range * np.cos(angle_left), y_base + self.range * np.sin(angle_left), 0
+                right_fov_pt = x_base + self.range * np.cos(angle_right), y_base + self.range * np.sin(angle_right), 0
+
+                left_fov_ind = self.point_to_ind(np.array(left_fov_pt)[:, None])
+                right_fov_ind = self.point_to_ind(np.array(right_fov_pt)[:, None])
+                
+                poly_rr, poly_cc = polygon([base_ind[0], min_fov_ind[0], left_fov_ind[0], left_ind[0], right_ind[0], right_fov_ind[0], max_fov_ind[0]], [base_ind[1], min_fov_ind[1],  left_fov_ind[1], left_ind[1], right_ind[1], right_fov_ind[1], max_fov_ind[1]], shape = self.logits.shape)
+                neg_mask[poly_rr, poly_cc] = True
+
+                pt_map = t_map_imx @ pt_imx
+                pt_map[2, 0] = 0.0 # zero out z
+
+                rr, cc = disk(self.point_to_ind(pt_map), self.radius // self.map_res)
+                rr[rr >= pos_mask.shape[0]]  = pos_mask.shape[0] - 1
+                rr[rr < 0]  = 0
+                cc[cc >= pos_mask.shape[1]]  = pos_mask.shape[1] - 1
+                cc[cc < 0]  = 0
+                pos_mask[rr, cc] = True
 
         neg_mask = np.logical_and(neg_mask, ~pos_mask)
 
+        self.logits[:, :] = 0
         self.logits[neg_mask] += self.beta
         self.logits[pos_mask] += self.alpha
         self.logits = np.clip(self.logits, a_min = -2, a_max = 10)

@@ -222,12 +222,12 @@ class Detector:
         roll, pitch, yaw = quaternion_to_euler(q.x, q.y, q.z, q.w)
 
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='rgb8')
-        #image = undistort_image(image, self.K, self.D)
+        image = undistort_image(image, self.K, self.D)
         image = rotate_image(image, np.rad2deg(pitch))
         scale = 1.0
         image = scale_image(image, scale)
-        #hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        #hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
         sat = hsv_image[:, :, 1]#.astype(np.int16)
         sat = cv2.equalizeHist(sat)
@@ -293,7 +293,7 @@ class Detector:
                     if max_iou < 0.80: # must find match in previous frame
                         continue
 
-                    if y > image.shape[0]//5 and (y + h) < 4 * image.shape[0] // 5:
+                    if y > image.shape[0]//8 and (y + h) < 7 * image.shape[0]//8:
                         cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
                         bbox = [x/scale, y/scale, (x+w)/scale, (y+h)/scale] # x_min, y_min, x_max, y_max
                         p_box_cam =  reproject_2D_to_3D(bbox, 0.3, self.K)
@@ -327,8 +327,8 @@ class Detector:
                 if 3 < aspect_ratio:
                     self.prev_rects.append((x, y, w, h))
 
-        msg = self.bridge.cv2_to_imgmsg(cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
-        #msg = self.bridge.cv2_to_imgmsg(image)
+        #msg = self.bridge.cv2_to_imgmsg(cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+        msg = self.bridge.cv2_to_imgmsg(image)
         msg.header.stamp = rospy.Time.now()
         self.seg_image_pub.publish(msg)
 
