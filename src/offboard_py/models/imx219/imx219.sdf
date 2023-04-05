@@ -32,8 +32,8 @@
         <camera>
           <!-- Image resolution (width and height) -->
           <image>
-            <width>2068</width>
-            <height>1114</height>
+            <width>540</width>
+            <height>540</height>
           </image>
           <!-- Horizontal field of view (in radians) -->
           <horizontal_fov>1.047</horizontal_fov>
@@ -54,14 +54,14 @@
           <frameName>imx219</frameName>
           <!--hackBaseline>0.07</hackBaseline-->
           <!--focalLength>1581.5</focalLength-->
-          <distortionK1>-0.3790</distortionK1>
-          <distortionK2>0.2780</distortionK2>
-          <distortionK3>-0.00092</distortionK3>
-          <distortionT1>0.00087</distortionT1>
-          <distortionT2>-0.2183</distortionT2>
-          <CxPrime>1034.7</CxPrime>
-          <Cx>1034.7</Cx>
-          <Cy>557.16</Cy>
+          <distortionK1>-0.39771</distortionK1>
+          <distortionK2>0.032766</distortionK2>
+          <distortionK3>-0.0005458</distortionK3>
+          <distortionT1>-0.00084079</distortionT1>
+          <distortionT2>0.0920723</distortionT2>
+          <CxPrime>270</CxPrime>
+          <Cx>313.5509</Cx>
+          <Cy>297.509</Cy>
         </plugin>
       </sensor>
     </link>
