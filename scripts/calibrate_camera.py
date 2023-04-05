@@ -18,7 +18,7 @@ objpoints = []  # 3D points in real world space
 imgpoints = []  # 2D points in image plane
 
 # Load the images of the checkerboard pattern
-images = glob.glob('/home/agrobenj/catkin_ws/images/imx219_calib_selected/*.png')
+images = glob.glob('/home/agrobenj/catkin_ws/images/imx219_calib_v2/*.png')
 
 # Loop through the images and find the checkerboard corners
 img_list = []

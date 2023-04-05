@@ -6,14 +6,23 @@ import imageio
 import glob
 
 #files = ['frame_0137.png', 'frame_0173.png', 'frame_0070.png', 'frame_0304.png']
-files = glob.glob('/home/agrobenj/catkin_ws/images/flying_v2/*.png')
+files = glob.glob('/home/agrobenj/catkin_ws/images/flying_v3/*.png')
 #print(files)
 files = sorted(files, key=lambda x: x[-8:])
 
-K = np.array([[1581.5, 0, 1034.7], # needs to be tuned
-                            [0, 1588.7, 557.16],
-                            [0, 0, 1]])
-D = np.array([[-0.37906155, 0.2780121, -0.00092033, 0.00087556, -0.21837157]])
+#K = np.array([[1581.5, 0, 1034.7], # needs to be tuned
+#                            [0, 1588.7, 557.16],
+#                            [0, 0, 1]])
+
+K = np.array(
+    [
+        [342.6836426,    0.,         313.55097801],
+        [  0., 607.63147143, 297.50936008],
+        [  0.,           0.,           1.        ]
+    ]
+)
+#D = np.array([[-0.37906155, 0.2780121, -0.00092033, 0.00087556, -0.21837157]])
+D = np.array([[-3.97718724e-01, 3.27660950e-02, -5.45843945e-04, -8.40769238e-03, 9.20723812e-01]])
 
 
 images = []
@@ -110,23 +119,24 @@ def get_mask_from_range(hsv_img, low, high):
 # method = cv2.TM_CCOEFF_NORMED
 
 prev_rects = []
+times = []
 for f in files:
 
 
     image = cv2.imread(f)
+    t = time.time()
     image = undistort_image(image, K, D)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     #image = image[:, image.shape[1]//2:]
 
 
-    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
     #hue = hsv_image[:, :, 0]#.astype(np.int16)
     #cv2.imshow('Hue', hue)
     sat = hsv_image[:, :, 1]#.astype(np.int16)
     sat = cv2.equalizeHist(sat)
     hsv_image[:, :, 1] = sat
-    print(image.shape)
     #print(sat.min(), sat.max())
     #cv2.imshow('Sat', sat)
     #target_hue = 30
@@ -171,7 +181,7 @@ for f in files:
 
     img_copy = image.copy()
 
-    min_area = 30000
+    min_area = 1000
     # # Fit a bounding rectangle to each contour and draw it on the original image
     for contour in yellow_contours:
         area = cv2.contourArea(contour)
@@ -240,8 +250,10 @@ for f in files:
             if 3 < aspect_ratio:
                 prev_rects.append((x, y, w, h))
 
+    times.append(time.time() - t)
+
     # # Display the original image with rectangles
-    cv2.imshow('Image with Rectangles', image)
+    cv2.imshow('Image with Rectangles', cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     images.append(image)
     #equalized_image = np.stack([cv2.equalizeHist(hsv_image[:, :, j]) if j in [0] else hsv_image[:, :, j] for j in range(3)], axis = -1)
     #cv2.imshow('Equalize', cv2.cvtColor(equalized_image, cv2.COLOR_HSV2BGR))
@@ -264,4 +276,6 @@ for f in files:
     cv2.waitKey(1)
 
 cv2.destroyAllWindows()
-imageio.mimsave("out.mp4", [cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in images], fps=10)
+
+print(f"fps = {1/np.mean(np.array(times))}")
+#imageio.mimsave("out.mp4", [cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in images], fps=10)

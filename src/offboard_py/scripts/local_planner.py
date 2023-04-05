@@ -111,12 +111,22 @@ class LocalPlanner:
         path_msg.header.stamp = rospy.Time.now()
         path_msg.header.frame_id = frame_id
 
-        for point in path:
-            x = point[1] * self.map_res + self.map_origin.x
-            y = point[0] * self.map_res + self.map_origin.y
-            pose = config_to_pose_stamped(x, y, z, yaw, frame_id=frame_id)
-            pose.header = path_msg.header
-            path_msg.poses.append(pose)
+        for point1, point2 in zip(path[:-1], path[1:]): 
+            x1 = point1[1] * self.map_res + self.map_origin.x
+            y1 = point1[0] * self.map_res + self.map_origin.y
+            p1 = np.array([x1, y1])
+
+            x2 = point2[1] * self.map_res + self.map_origin.x
+            y2 = point2[0] * self.map_res + self.map_origin.y
+            p2 = np.array([x2, y2])
+            num_pts = max(2, np.int(np.round(np.linalg.norm(p1 - p1) / self.map_res)))
+            pts = np.linspace(p1, p2, num = num_pts)
+
+            for pt in pts:
+                x,y = pt
+                pose = config_to_pose_stamped(x, y, z, yaw, frame_id=frame_id)
+                pose.header = path_msg.header
+                path_msg.poses.append(pose)
 
         return path_msg
 
@@ -172,17 +182,20 @@ class LocalPlanner:
         return circlePts # (num_pts, num_pts_per_circle, 2)
 
     def get_plan(self, t_map_d: PoseStamped, t_map_d_goal: PoseStamped) -> Path:
+        # t_map_d: current point of dots in map
+        # t_map_d_goal: goal point of dots in map
         with self.map_lock:
             if self.map is None:
                 return Path()
             occ_map = self.map.copy()
 
-        x1,y1 = get_config_from_pose_stamped(t_map_d)[:2]
-        x2,y2,z2, _, _, yaw = get_config_from_pose_stamped(t_map_d_goal)
+        x1,y1 = get_config_from_pose_stamped(t_map_d)[:2] # get current position (x,y)
+        x2,y2,z2, _, _, yaw = get_config_from_pose_stamped(t_map_d_goal) # get goal position (x, y, z, yaw)
 
-        r1, c1 = self.point_to_ind(np.array([x1, y1, 0])[:, None])
+        r1, c1 = self.point_to_ind(np.array([x1, y1, 0])[:, None]) # turn those into indices into occ map
         r2, c2 = self.point_to_ind(np.array([x2, y2, 0])[:, None])
 
+        # -------- start search -----------
 
         def collision_fn(pt):
             if len(pt.shape) == 2:
@@ -225,6 +238,8 @@ class LocalPlanner:
 
         path_msg = self.path_to_path_message(shorter_path, z2, yaw, frame_id='map')
         path_msg.poses[-1] = t_map_d_goal # correct for map resolution
+
+        # -------- end search -----------
 
         self.path_pub.publish(path_msg)
         return path_msg
