@@ -95,7 +95,7 @@ class LocalPlanner:
 
         self.goal_sub = rospy.Subscriber('curr_waypoint', PoseStamped, callback = self.t_map_d_goal_cb)
         self.curr_sub = rospy.Subscriber('curr_t_map_dots', PoseStamped, callback = self.t_map_d_cb)
-        self.vehicle_radius = 0.7
+        self.vehicle_radius = 0.3
         pass
 
         self.t_map_d_goal = None
@@ -241,19 +241,15 @@ class LocalPlanner:
                 
             start = np.array([r1, c1])
             goal = np.array([r2, c2])
-            st = coll_free(start, goal, collision_fn, steps=10)
+            #st = coll_free(start, goal, collision_fn, steps=10)
 
-            if st: 
-                shorter_path = [start, goal] 
-            else:
-                start_time = time.time()
-                graph = self.occupancy_grid_to_graph(occ_map, collision_fn)
-                try:
-                    path = nx.astar_path(graph, (r1, c1), (r2, c2), heuristic=lambda a, b: np.linalg.norm(np.array(a) - np.array(b)))
-                except Exception as e:
-                    print(f"Failed to find path")
-                    path = [start]
-                dt = time.time() - start_time
+            #if st: 
+            #    shorter_path = [start, goal] 
+            #else:
+            start_time = time.time()
+            graph = self.occupancy_grid_to_graph(occ_map, collision_fn)
+            try:
+                path = nx.astar_path(graph, (r1, c1), (r2, c2), heuristic=lambda a, b: np.linalg.norm(np.array(a) - np.array(b)))
 
                 if len(path) == 1:
                     path = path + path
@@ -267,10 +263,16 @@ class LocalPlanner:
                     while j < len(path)-1 and coll_free(path[i], path[j], collision_fn):
                         j+=1
                     i = j
-                print(f"Astar time: {dt}")
+                #print(f"Astar time: {dt}")
+                path_msg = self.path_to_path_message(shorter_path, z2, yaw, frame_id='map')
+                path_msg.poses[-1] = t_map_d_goal # correct for map resolution
 
-            path_msg = self.path_to_path_message(shorter_path, z2, yaw, frame_id='map')
-            path_msg.poses[-1] = t_map_d_goal # correct for map resolution
+            except Exception as e:
+                print(f"Failed to find path")
+                shorter_path = [start, start]
+                path_msg = self.path_to_path_message(shorter_path, z2, yaw, frame_id='map')
+
+            dt = time.time() - start_time
 
             # -------- end search -----------
 

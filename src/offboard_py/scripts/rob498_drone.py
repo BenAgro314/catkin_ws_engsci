@@ -393,7 +393,6 @@ class RobDroneControl():
 
     def local_plan_callback(self, msg):
         with self.local_goal_lock:
-            print(self.local_goal)
             self.local_goal = msg.poses[1]
 
     def compute_twist_command(self):
