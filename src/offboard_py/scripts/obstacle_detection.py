@@ -128,8 +128,6 @@ def reproject_2D_to_3D(bbox, actual_height, K):
     center_x_3D = center_plane[0] * depth
     center_y_3D = center_plane[1] * depth
 
-    print(center_x_3D, center_y_3D, depth)
-
     # Return the 3D coordinates of the center of the bounding box
     return center_x_3D, center_y_3D, depth
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from threading import Lock
+from copy import deepcopy
 import time
 from functools import partial
 from offboard_py.scripts.utils import config_to_pose_stamped, get_config_from_pose_stamped
@@ -91,8 +92,24 @@ class LocalPlanner:
 
         self.map_lock = Lock()
         self.path_pub = rospy.Publisher('local_plan', Path, queue_size=10)
-        self.vehicle_radius = 0.6
+
+        self.goal_sub = rospy.Subscriber('curr_waypoint', PoseStamped, callback = self.t_map_d_goal_cb)
+        self.curr_sub = rospy.Subscriber('curr_t_map_dots', PoseStamped, callback = self.t_map_d_cb)
+        self.vehicle_radius = 0.7
         pass
+
+        self.t_map_d_goal = None
+        self.t_map_d = None
+        self.t_map_d_goal_lock = Lock()
+        self.t_map_d_lock = Lock()
+
+    def t_map_d_goal_cb(self, msg):
+        with self.t_map_d_goal_lock:
+            self.t_map_d_goal = msg
+
+    def t_map_d_cb(self, msg):
+        with self.t_map_d_lock:
+            self.t_map_d = msg
 
     def point_to_ind(self, pt):
         # pt.shape == (3, 1) or (2, 1)
@@ -119,7 +136,7 @@ class LocalPlanner:
             x2 = point2[1] * self.map_res + self.map_origin.x
             y2 = point2[0] * self.map_res + self.map_origin.y
             p2 = np.array([x2, y2])
-            num_pts = max(2, np.int(np.round(np.linalg.norm(p1 - p1) / self.map_res)))
+            num_pts = max(2, np.int(np.round(np.linalg.norm(p1 - p1) / (self.map_res/2))))
             pts = np.linspace(p1, p2, num = num_pts)
 
             for pt in pts:
@@ -154,8 +171,10 @@ class LocalPlanner:
 
         return graph
 
-    def inds_to_robot_circle(self, inds):
-        radius = self.vehicle_radius / self.map_res # radius in px
+    def inds_to_robot_circle(self, inds, vehicle_radius = None):
+        if vehicle_radius is None:
+            vehicle_radius = self.vehicle_radius
+        radius = vehicle_radius / self.map_res # radius in px
 
         N = inds.shape[0]
         indexings = np.arange(np.floor(-radius), np.ceil(radius),dtype=np.int64)
@@ -181,67 +200,87 @@ class LocalPlanner:
 
         return circlePts # (num_pts, num_pts_per_circle, 2)
 
-    def get_plan(self, t_map_d: PoseStamped, t_map_d_goal: PoseStamped) -> Path:
+    #def get_plan(self, t_map_d: PoseStamped, t_map_d_goal: PoseStamped) -> Path:
+    def run(self) -> Path:
         # t_map_d: current point of dots in map
         # t_map_d_goal: goal point of dots in map
-        with self.map_lock:
-            if self.map is None:
-                return Path()
-            occ_map = self.map.copy()
+        rate = rospy.Rate(10)
+        while(not rospy.is_shutdown()):
+            #print("HERE")
+            with self.t_map_d_goal_lock:
+                t_map_d_goal = deepcopy(self.t_map_d_goal)
+            with self.t_map_d_lock:
+                t_map_d = deepcopy(self.t_map_d)
+            if t_map_d is None or t_map_d_goal is None:
+                continue
+            with self.map_lock:
+                if self.map is None:
+                    continue
+                occ_map = self.map.copy()
 
-        x1,y1 = get_config_from_pose_stamped(t_map_d)[:2] # get current position (x,y)
-        x2,y2,z2, _, _, yaw = get_config_from_pose_stamped(t_map_d_goal) # get goal position (x, y, z, yaw)
+            x1,y1 = get_config_from_pose_stamped(t_map_d)[:2] # get current position (x,y)
+            x2,y2,z2, _, _, yaw = get_config_from_pose_stamped(t_map_d_goal) # get goal position (x, y, z, yaw)
 
-        r1, c1 = self.point_to_ind(np.array([x1, y1, 0])[:, None]) # turn those into indices into occ map
-        r2, c2 = self.point_to_ind(np.array([x2, y2, 0])[:, None])
+            r1, c1 = self.point_to_ind(np.array([x1, y1, 0])[:, None]) # turn those into indices into occ map
+            r2, c2 = self.point_to_ind(np.array([x2, y2, 0])[:, None])
 
-        # -------- start search -----------
+            # -------- start search -----------
 
-        def collision_fn(pt):
-            if len(pt.shape) == 2:
-                pts = np.round(pt).astype(np.int32)
+            def collision_fn(pt):
+                if len(pt.shape) == 2:
+                    pts = np.round(pt).astype(np.int32)
+                else:
+                    row=int(round(pt[0]))
+                    col=int(round(pt[1]))
+                    pts = np.array([row, col])[None, :] # (1, 2)
+                circle_pts = self.inds_to_robot_circle(pts)
+                rows = circle_pts[..., 0]
+                cols = circle_pts[..., 1]
+                return np.any(occ_map[rows, cols] > 60, axis = 1)
+
+                
+            start = np.array([r1, c1])
+            goal = np.array([r2, c2])
+            st = coll_free(start, goal, collision_fn, steps=10)
+
+            if st: 
+                shorter_path = [start, goal] 
             else:
-                row=int(round(pt[0]))
-                col=int(round(pt[1]))
-                pts = np.array([row, col])[None, :] # (1, 2)
-            circle_pts = self.inds_to_robot_circle(pts)
-            rows = circle_pts[..., 0]
-            cols = circle_pts[..., 1]
-            return np.any(occ_map[rows, cols] > 60, axis = 1)
+                start_time = time.time()
+                graph = self.occupancy_grid_to_graph(occ_map, collision_fn)
+                try:
+                    path = nx.astar_path(graph, (r1, c1), (r2, c2), heuristic=lambda a, b: np.linalg.norm(np.array(a) - np.array(b)))
+                except Exception as e:
+                    print(f"Failed to find path")
+                    path = [start]
+                dt = time.time() - start_time
 
-            
-        start = np.array([r1, c1])
-        goal = np.array([r2, c2])
-        st = coll_free(start, goal, collision_fn, steps=10)
+                if len(path) == 1:
+                    path = path + path
 
-        if st: 
-            shorter_path = [start, goal] 
-        else:
-            start_time = time.time()
-            graph = self.occupancy_grid_to_graph(occ_map, collision_fn)
-            path = nx.astar_path(graph, (r1, c1), (r2, c2), heuristic=lambda a, b: np.linalg.norm(np.array(a) - np.array(b)))
-            dt = time.time() - start_time
+                # shorten path
+                shorter_path = []
+                i = 0
+                while i < len(path):
+                    shorter_path.append(path[i])
+                    j = i+1
+                    while j < len(path)-1 and coll_free(path[i], path[j], collision_fn):
+                        j+=1
+                    i = j
+                print(f"Astar time: {dt}")
 
-            if len(path) == 1:
-                path = path + path
+            path_msg = self.path_to_path_message(shorter_path, z2, yaw, frame_id='map')
+            path_msg.poses[-1] = t_map_d_goal # correct for map resolution
 
-            # shorten path
-            shorter_path = []
-            i = 0
-            while i < len(path):
-                shorter_path.append(path[i])
-                j = i+1
-                while j < len(path)-1 and coll_free(path[i], path[j], collision_fn):
-                    j+=1
-                i = j
-            print(f"Astar time: {dt}")
+            # -------- end search -----------
 
-        path_msg = self.path_to_path_message(shorter_path, z2, yaw, frame_id='map')
-        path_msg.poses[-1] = t_map_d_goal # correct for map resolution
-
-        # -------- end search -----------
-
-        self.path_pub.publish(path_msg)
-        return path_msg
+            self.path_pub.publish(path_msg)
+            rate.sleep()
+            #return path_msg
 
 
+
+if __name__ == "__main__":
+    rospy.init_node("local_planner")
+    lp = LocalPlanner()
+    lp.run()
