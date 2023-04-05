@@ -20,12 +20,12 @@ import tf2_ros
 from visualization_msgs.msg import Marker
 
 USE_SLERP=False
-USE_ORIENTATION=False
+USE_ORIENTATION=True
 STABILIZE_ORIENTATION=True
 PERP=True
-BUILD_MAP=False
+BUILD_MAP=True
 JIGGLE=False
-WAIT_DUR=1
+WAIT_DUR=0
 
 class RobDroneControl():
 
@@ -243,7 +243,7 @@ class RobDroneControl():
         else:
             x, y, _, _, _, yaw = get_config_from_pose_stamped(self.current_t_map_dots)
 
-            for angle in np.linspace(yaw, yaw + 2*np.pi, 30):
+            for angle in np.linspace(yaw, yaw - 2*np.pi, 30):
                 self.waypoint_queue_push(config_to_pose_stamped(x, y, self.launch_height, angle, self.current_t_map_dots.header.frame_id))
             #pose_array = yaml_to_pose_array(os.path.join(get_current_directory(), "../config/build_map_poses.yaml"))
             #self.received_waypoints = pose_array

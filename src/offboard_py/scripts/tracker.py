@@ -76,6 +76,7 @@ class Tracker:
         self.tf_buffer.can_transform('map', 'base_link', rospy.Time(0), timeout=rospy.Duration(5))
         t_map_base = self.tf_buffer.lookup_transform(
         "map", "base_link", rospy.Time(0)).transform
+        self.tf_buffer.can_transform('map', 'imx219', rospy.Time(0), timeout=rospy.Duration(5))
         t_base_imx = self.tf_buffer.lookup_transform(
         "base_link", "imx219", rospy.Time(0)).transform
         x_base, y_base, _, _, _, yaw_base = get_config_from_transformation(t_map_base)
