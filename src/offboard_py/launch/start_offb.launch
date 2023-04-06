@@ -99,5 +99,5 @@
 			args="0 0 0 0 1.5707 1.5707 base_link imx219 1000"/>
 
 	<node name="tracker" pkg="offboard_py" type="tracker.py" output="screen"/>
-	<node name="local_planner" pkg="offboard_py" type="local_planner.py" output="screen"/>
+	<!--node name="local_planner" pkg="offboard_py" type="local_planner.py" output="screen"/-->
 </launch>
