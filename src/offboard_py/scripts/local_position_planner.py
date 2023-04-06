@@ -211,5 +211,5 @@ class LocalPlanner:
 
         self.path_pub.publish(self.current_path)
 
-        print(f"Planning time: {time.time() - t}")
+        #print(f"Planning time: {time.time() - t}")
         return self.current_path
