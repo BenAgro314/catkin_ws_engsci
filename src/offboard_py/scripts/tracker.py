@@ -69,8 +69,8 @@ class Tracker:
     def cyl_callback(self, msg):
         #pos = msg.pose.position
 
-        pos_mask = np.zeros_like(self.logits, dtype = bool)
-        neg_mask = np.zeros_like(self.logits, dtype = bool)
+        pos_mask = np.zeros_like(self.logits, dtype = np.uint8)
+        neg_mask = np.zeros_like(self.logits, dtype = np.uint8)
 
         #pt_imx = np.array([pos.x, pos.y, pos.z, 1])[:, None] # (3, 1)
 
@@ -93,27 +93,20 @@ class Tracker:
         min_fov_ind = self.point_to_ind(np.array(min_fov_pt)[:, None])
         max_fov_ind = self.point_to_ind(np.array(max_fov_pt)[:, None])
 
+        pts = np.array([[base_ind[1], base_ind[0]], [min_fov_ind[1], min_fov_ind[0]], [max_fov_ind[1], max_fov_ind[0]]], np.int32)
+        cv2.fillPoly(neg_mask, [pts], 1)
+        neg_mask = neg_mask == 1
+
         imx_points = pointcloud2_to_numpy(msg)
-        if len(imx_points) == 0:
-            poly_rr, poly_cc = polygon([base_ind[0], min_fov_ind[0], max_fov_ind[0]], [base_ind[1], min_fov_ind[1], max_fov_ind[1]], shape = self.logits.shape)
-            neg_mask[poly_rr, poly_cc] = True
-        else:
-            for pt_imx in imx_points:
-                pt_imx = np.concatenate((pt_imx[:, None], np.array([[1]])), axis = 0) # (3, 1)
-                
-                poly_rr, poly_cc = polygon([base_ind[0], min_fov_ind[0], max_fov_ind[0]], [base_ind[1], min_fov_ind[1],  max_fov_ind[1]], shape = self.logits.shape)
-                neg_mask[poly_rr, poly_cc] = True
+        for pt_imx in imx_points:
+            pt_imx = np.concatenate((pt_imx[:, None], np.array([[1]])), axis = 0) # (3, 1)
 
-                pt_map = t_map_imx @ pt_imx
-                pt_map[2, 0] = 0.0 # zero out z
+            pt_map = t_map_imx @ pt_imx
+            pt_map[2, 0] = 0.0 # zero out z
 
-                rr, cc = disk(self.point_to_ind(pt_map), self.radius // self.map_res)
-                rr[rr >= pos_mask.shape[0]]  = pos_mask.shape[0] - 1
-                rr[rr < 0]  = 0
-                cc[cc >= pos_mask.shape[1]]  = pos_mask.shape[1] - 1
-                cc[cc < 0]  = 0
-                pos_mask[rr, cc] = True
+            cv2.circle(pos_mask, self.point_to_ind(pt_map)[::-1], int(round(self.radius // self.map_res)), 1, thickness = -1)
 
+        pos_mask = pos_mask == 1
         neg_mask = np.logical_and(neg_mask, ~pos_mask)
 
         self.logits[neg_mask] += self.beta
@@ -136,7 +129,7 @@ class Tracker:
         row_ind = (y - self.map_bounds[1]) // (self.map_res) 
         col_ind = (x - self.map_bounds[0]) // (self.map_res) 
 
-        return (row_ind, col_ind)
+        return (int(row_ind), int(col_ind))
 
 
 
