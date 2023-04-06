@@ -99,14 +99,12 @@ class LocalPlanner:
             while j < len(path)-1 and coll_free(path[i], path[j], collision_fn):
                 j+=1
             i = j
-        print(f"Shorter path length: {len(shorter_path)}")
         path_msg = self.path_to_path_message(shorter_path, t_map_d, t_map_d_goal, 'map')
         # to correct for discretization
         path_msg.poses[0] = t_map_d
         if success:
             path_msg.poses[-1] = t_map_d_goal
         path_msg.poses = self.smooth_path(path_msg.poses, t_map_d, t_map_d_goal)
-        print(f"Final path length: {len(path_msg.poses)}")
         return path_msg
 
 
