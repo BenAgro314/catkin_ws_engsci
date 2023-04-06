@@ -106,7 +106,7 @@ class LocalPlanner:
         pass
 
 
-    def plan(self, occ_map, t_map_d, t_map_d_goal):
+    def plan(self, occ_map, t_map_d, t_map_d_goal, collision_fn):
         x1, y1, z1, _, _, yaw1 = get_config_from_pose_stamped(t_map_d)
         x2, y2, z2, _, _, yaw2 = get_config_from_pose_stamped(t_map_d_goal)
 
@@ -120,7 +120,23 @@ class LocalPlanner:
         if path is None:
             print(f"Failed to find path! Staying still instead")
             path = [(r1, c1)]
-        path_msg = self.path_to_path_message(path, t_map_d, t_map_d_goal, 'map')
+
+        #if len(path) == 1:
+            #path = path + path
+
+        # shorten path
+        shorter_path = []
+        i = 0
+        while i < len(path):
+            shorter_path.append(path[i])
+            j = i+1
+            while j < len(path)-1 and coll_free(path[i], path[j], collision_fn):
+                j+=1
+            i = j
+        #print(f"Astar time: {dt}")
+        #path_msg = self.path_to_path_message(shorter_path, z2, yaw, frame_id='map')
+
+        path_msg = self.path_to_path_message(shorter_path, t_map_d, t_map_d_goal, 'map')
         if len(path_msg.poses) == 1:
             path_msg.poses = [path_msg.poses[0]] * 2
         path_msg.poses[-1] = t_map_d_goal # to handle discretization
@@ -194,7 +210,7 @@ class LocalPlanner:
             return np.any(occ_map[rows, cols] > 60, axis = 1)
 
         if self.current_path is None or len(self.current_path.poses) == 0 or not self.pose_is_close(t_map_d_goal, self.current_path.poses[-1]) or self.path_has_collision(self.current_path, collision_fn):
-            self.current_path = self.plan(occ_map, t_map_d, t_map_d_goal)
+            self.current_path = self.plan(occ_map, t_map_d, t_map_d_goal, collision_fn)
         else:
             # check if we are near first waypoint on path
             assert len(self.current_path.poses) > 0
