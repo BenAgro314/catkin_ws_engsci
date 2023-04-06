@@ -21,7 +21,7 @@ class Tracker:
         self.points = None
         self.cyl_sub= rospy.Subscriber("det_points", PointCloud2, callback = self.cyl_callback)
 
-        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_buffer = tf2_ros.Buffer(cache_time=rospy.Duration(60.0))
         tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         self.occ_map_pub = rospy.Publisher('occ_map', OccupancyGrid, queue_size=10)
 
@@ -73,15 +73,18 @@ class Tracker:
         neg_mask = np.zeros_like(self.logits, dtype = bool)
 
         #pt_imx = np.array([pos.x, pos.y, pos.z, 1])[:, None] # (3, 1)
-        self.tf_buffer.can_transform('map', 'base_link', rospy.Time(0), timeout=rospy.Duration(5))
+
+        image_time = msg.header.stamp
+        self.tf_buffer.can_transform('map', 'base_link', image_time, timeout=rospy.Duration(5))
         t_map_base = self.tf_buffer.lookup_transform(
-        "map", "base_link", rospy.Time(0)).transform
-        self.tf_buffer.can_transform('map', 'imx219', rospy.Time(0), timeout=rospy.Duration(5))
+        "map", "base_link", image_time).transform
+        self.tf_buffer.can_transform('base_link', 'imx219', image_time, timeout=rospy.Duration(5))
         t_base_imx = self.tf_buffer.lookup_transform(
         "base_link", "imx219", rospy.Time(0)).transform
         x_base, y_base, _, _, _, yaw_base = get_config_from_transformation(t_map_base)
         t_map_base  = transform_to_numpy(t_map_base)
         t_base_imx  = transform_to_numpy(t_base_imx)
+        t_map_imx = t_map_base @ t_base_imx
 
         cam_angle = yaw_base - np.pi / 2
         min_fov_pt = x_base + self.range * np.cos(cam_angle + self.fov[0]), y_base + self.range * np.sin(cam_angle + self.fov[0]), 0
@@ -97,33 +100,8 @@ class Tracker:
         else:
             for pt_imx in imx_points:
                 pt_imx = np.concatenate((pt_imx[:, None], np.array([[1]])), axis = 0) # (3, 1)
-                pt_imx_left = pt_imx.copy()
-                pt_imx_right = pt_imx.copy()
-
-                pt_imx_left[0] -= self.radius
-                pt_imx_right[0] += self.radius
-
-                t_map_imx = t_map_base @ t_base_imx
-
-                pt_map_left = t_map_imx @ pt_imx_left
-                pt_map_right = t_map_imx @ pt_imx_right
-
-                pt_map_left[2, 0] = 0.0
-                pt_map_right[2, 0] = 0.0
-
-                left_ind = self.point_to_ind(pt_map_left)                 
-                right_ind = self.point_to_ind(pt_map_right)                 
-
-                angle_left = np.arctan2(pt_map_left[1] - y_base, pt_map_left[0] - x_base)
-                angle_right = np.arctan2(pt_map_right[1] - y_base, pt_map_right[0] - x_base)
-
-                left_fov_pt = x_base + self.range * np.cos(angle_left), y_base + self.range * np.sin(angle_left), 0
-                right_fov_pt = x_base + self.range * np.cos(angle_right), y_base + self.range * np.sin(angle_right), 0
-
-                left_fov_ind = self.point_to_ind(np.array(left_fov_pt)[:, None])
-                right_fov_ind = self.point_to_ind(np.array(right_fov_pt)[:, None])
                 
-                poly_rr, poly_cc = polygon([base_ind[0], min_fov_ind[0], left_fov_ind[0], left_ind[0], right_ind[0], right_fov_ind[0], max_fov_ind[0]], [base_ind[1], min_fov_ind[1],  left_fov_ind[1], left_ind[1], right_ind[1], right_fov_ind[1], max_fov_ind[1]], shape = self.logits.shape)
+                poly_rr, poly_cc = polygon([base_ind[0], min_fov_ind[0], max_fov_ind[0]], [base_ind[1], min_fov_ind[1],  max_fov_ind[1]], shape = self.logits.shape)
                 neg_mask[poly_rr, poly_cc] = True
 
                 pt_map = t_map_imx @ pt_imx
