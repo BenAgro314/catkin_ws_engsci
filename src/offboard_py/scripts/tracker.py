@@ -98,6 +98,7 @@ class Tracker:
         neg_mask = neg_mask == 1
 
         imx_points = pointcloud2_to_numpy(msg)
+        print(f"Detected {imx_points.shape[0]} obstacles!")
         for pt_imx in imx_points:
             pt_imx = np.concatenate((pt_imx[:, None], np.array([[1]])), axis = 0) # (3, 1)
 

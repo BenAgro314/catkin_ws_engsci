@@ -44,10 +44,10 @@
           </clip>
         </camera>
         <!-- Update rate (in Hz) -->
-        <update_rate>30.0</update_rate>
+        <update_rate>5</update_rate>
         <plugin name='camera_controller' filename='libgazebo_ros_camera.so'>
           <alwaysOn>1</alwaysOn>
-          <updateRate>30</updateRate>
+          <updateRate>5</updateRate>
           <cameraName></cameraName>
           <imageTopicName>imx219_image</imageTopicName>
           <cameraInfoTopicName>camera_info</cameraInfoTopicName>
