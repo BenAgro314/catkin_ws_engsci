@@ -148,7 +148,7 @@ class Detector:
 
         self.det_point_pub = rospy.Publisher("det_points", PointCloud2, queue_size=10)
 
-        self.tf_buffer = tf2_ros.Buffer(cache_time=rospy.Duration(60.0))
+        self.tf_buffer = tf2_ros.Buffer(cache_time=rospy.Duration(10.0))
         tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
         # Define the source and target frames
