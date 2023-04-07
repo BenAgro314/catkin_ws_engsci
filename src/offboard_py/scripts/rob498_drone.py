@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 from typing import List, Optional
 from offboard_py.scripts.controller import Controller
-from offboard_py.scripts.local_position_planner import LocalPlanner
-#from offboard_py.scripts.local_planner import LocalPlanner
+from offboard_py.scripts.local_planner import LocalPlanner
 
 #from offboard_py.scripts.path_planner import find_traj
 from offboard_py.scripts.utils import Colors, are_angles_close, config_to_pose_stamped, config_to_transformation_matrix, get_config_from_pose, get_config_from_pose_stamped, make_sphere_marker, numpy_to_transform_stamped, pose_stamped_to_transform_stamped, shortest_signed_angle, slerp_pose, transform_stamped_to_pose_stamped, transform_twist, yaml_to_pose_array, get_current_directory
@@ -24,9 +23,9 @@ USE_SLERP=False
 USE_ORIENTATION=True
 STABILIZE_ORIENTATION=True
 PERP=True
-BUILD_MAP=True
+BUILD_MAP=False
 JIGGLE=False
-WAIT_DUR=0
+WAIT_DUR=1
 
 class RobDroneControl():
 
@@ -55,17 +54,14 @@ class RobDroneControl():
         self.land_height = 0.05
         self.task_ball_radius = 0.15
 
-        #self.controller = Controller() 
+        self.controller = Controller() 
         self.local_planner = LocalPlanner()
 
         self.state_sub = rospy.Subscriber("mavros/state", State, callback = self.state_cb)
-        self.setpoint_position_pub = rospy.Publisher("mavros/setpoint_position/local", PoseStamped, queue_size=10)
-        #self.setpoint_vel_pub = rospy.Publisher("mavros/setpoint_velocity/cmd_vel_unstamped", Twist, queue_size=10)
+        #self.setpoint_position_pub = rospy.Publisher("mavros/setpoint_position/local", PoseStamped, queue_size=10)
+        self.setpoint_vel_pub = rospy.Publisher("mavros/setpoint_velocity/cmd_vel_unstamped", Twist, queue_size=10)
         self.local_pose_sub = rospy.Subscriber("mavros/local_position/pose", PoseStamped, callback = self.pose_cb)
 
-        self.curr_t_map_dots_pub = rospy.Publisher("curr_t_map_dots", PoseStamped, queue_size=10)
-        self.curr_waypoint_pub = rospy.Publisher("curr_waypoint", PoseStamped, queue_size=10)
-        #self.local_plan_sub = rospy.Subscriber("local_plan", Path, callback=self.local_plan_callback)
 
         self.vicon_sub = rospy.Subscriber("/vicon/ROB498_Drone/ROB498_Drone", TransformStamped, self.vicon_callback)
         self.test_ready = False
@@ -112,9 +108,6 @@ class RobDroneControl():
 
         # timing 
         self.arrived_time = None
-        self.local_goal_lock = Lock()
-        self.local_goal = None
-
 
     def publish_sphere_marker(self, x: float, y: float, z:float, r: float):
         marker = make_sphere_marker(x, y, z, r)
@@ -201,7 +194,6 @@ class RobDroneControl():
         with self.current_pose_lock:
             self.prev_t_map_dots = self.current_t_map_dots
             self.current_t_map_dots = t_map_dots
-            self.curr_t_map_dots_pub.publish(self.current_t_map_dots)
 
     def state_cb(self, msg: State):
         self.current_state = msg
@@ -251,7 +243,7 @@ class RobDroneControl():
         else:
             x, y, _, _, _, yaw = get_config_from_pose_stamped(self.current_t_map_dots)
 
-            for angle in np.linspace(yaw, yaw - 2*np.pi, 4):
+            for angle in np.linspace(yaw, yaw + 2*np.pi, 30):
                 self.waypoint_queue_push(config_to_pose_stamped(x, y, self.launch_height, angle, self.current_t_map_dots.header.frame_id))
             #pose_array = yaml_to_pose_array(os.path.join(get_current_directory(), "../config/build_map_poses.yaml"))
             #self.received_waypoints = pose_array
@@ -392,21 +384,12 @@ class RobDroneControl():
                 self.arrived_time = rospy.Time.now()
             return trans_is_close and rospy.Time.now() >= self.arrived_time + self.current_duration
 
-    #def local_plan_callback(self, msg):
-    #    with self.local_goal_lock:
-    #        self.local_goal = msg.poses[1]
-
     def compute_twist_command(self):
         if self.current_waypoint is None:
             return Twist()
         #if self.local_path is None or self.pose_is_close(self.local_path.poses[1], self.current_t_map_dots):
-        #self.local_path = self.local_planner.get_plan(self.current_t_map_dots, self.current_waypoint)
-
-        with self.local_goal_lock:
-            if self.local_goal is None:
-                curr_goal = self.current_t_map_dots
-            else:
-                curr_goal = self.local_goal #self.local_path.poses[1] # first pose on the list
+        self.local_path = self.local_planner.get_plan(self.current_t_map_dots, self.current_waypoint)
+        curr_goal = self.local_path.poses[1] # first pose on the list
         #curr_goal = self.current_waypoint
         twist_dots = self.controller.get_twist(self.current_t_map_dots, curr_goal)
         twist_base = transform_twist(twist_dots, self.t_base_dots)
@@ -416,19 +399,6 @@ class RobDroneControl():
             twist_base.angular.z = 0.0
         return twist_base
 
-    def compute_pose_command(self):
-        if self.current_waypoint is None:
-            p = PoseStamped()
-            p.header.stamp = rospy.Time.now()
-            p.header.frame_id = "map"
-            return p
-        
-        path = self.local_planner.run(self.current_t_map_dots, self.current_waypoint)
-        goal_t_map_dots = pose_stamped_to_numpy(path.poses[0])
-        #goal_t_map_dots = pose_stamped_to_numpy(self.current_waypoint)
-        goal_t_map_base = numpy_to_pose_stamped(goal_t_map_dots @ self.t_dots_base)
-
-        return goal_t_map_base
 
     def run(self):
         rate = rospy.Rate(20)
@@ -440,13 +410,12 @@ class RobDroneControl():
         self.active = True
 
         while(not rospy.is_shutdown()):
-            self.setpoint_position_pub.publish(self.compute_pose_command())
-            #self.setpoint_vel_pub.publish(self.compute_twist_command())
+            #self.setpoint_position_pub.publish(self.current_waypoint)
+            self.setpoint_vel_pub.publish(self.compute_twist_command())
             if self.current_waypoint is None or self.pose_is_close(self.current_waypoint, self.current_t_map_dots):
                 #self.queue_lock.acquire()
                 if self.len_waypoint_queue > 0:
                     self.current_waypoint, self.current_duration = self.waypoint_queue_pop()
-                    self.curr_waypoint_pub.publish(self.current_waypoint)
                     self.arrived_time = None
                     cfg = get_config_from_pose_stamped(self.current_waypoint)
                     self.publish_sphere_marker(cfg[0], cfg[1], cfg[2], self.waypoint_trans_ths)
