@@ -45,6 +45,16 @@ class Tracker:
     def publish_occupancy_grid(self):
         map = np.exp(self.logits) / (1 + np.exp(self.logits))
 
+        mask = map > 50
+        for r in range(map.shape[0]):
+            for c in range(map.shape[1]):
+                if mask[r][c]:
+                    print(".", end = '')
+                else:
+                    print("#", end = '')
+                if c == map.shape[1] - 1:
+                    print()
+
         height, width = map.shape
         occupancy_grid = OccupancyGrid()
         occupancy_grid.header.stamp = rospy.Time.now()
@@ -75,10 +85,12 @@ class Tracker:
         #pt_imx = np.array([pos.x, pos.y, pos.z, 1])[:, None] # (3, 1)
 
         image_time = msg.header.stamp
-        self.tf_buffer.can_transform('map', 'base_link', image_time, timeout=rospy.Duration(5))
+        if not  self.tf_buffer.can_transform('map', 'base_link', image_time, timeout=rospy.Duration(0.2)):
+            print(f"Tracker detector not up yet. Detector time - current time: {image_time.to_sec() - rospy.Time.now().to_sec()} s")
+            return
         t_map_base = self.tf_buffer.lookup_transform(
         "map", "base_link", image_time).transform
-        self.tf_buffer.can_transform('base_link', 'imx219', image_time, timeout=rospy.Duration(5))
+        self.tf_buffer.can_transform('base_link', 'imx219', image_time, timeout=rospy.Duration(0.2))
         t_base_imx = self.tf_buffer.lookup_transform(
         "base_link", "imx219", rospy.Time(0)).transform
         x_base, y_base, _, _, _, yaw_base = get_config_from_transformation(t_map_base)
