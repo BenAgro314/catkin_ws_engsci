@@ -67,7 +67,7 @@ class LocalPlanner:
         self.path_pub = rospy.Publisher('local_plan', Path, queue_size=10)
 
         self.vehicle_radius = 0.45
-        self.blur_dist = 1.0
+        self.blur_dist = 2.0
         self.current_path = None
 
     def point_to_ind(self, pt):
@@ -212,32 +212,27 @@ class LocalPlanner:
 
         dr = r2 - r1
         dc = c2 - c1
+        #print('dr', dr)
+        #print('dc', dc)
+        #print()
         blur_inds = int(round(self.blur_dist / self.map_res))
         if np.abs(dr) > np.abs(dc):
             if dr > 0:
                 #dir = Dir.POS_X
-                red_occ_map = blur_image_direction(red_occ_map, "POS_Y", blur_inds)
-                green_occ_map = blur_image_direction(green_occ_map, "NEG_Y", blur_inds)
+                red_occ_blur = blur_image_direction(red_occ_map, "POS_X", blur_inds)
+                green_occ_blur = blur_image_direction(green_occ_map, "NEG_X", blur_inds)
             else:
-                red_occ_map = blur_image_direction(red_occ_map, "NEG_Y", blur_inds)
-                green_occ_map = blur_image_direction(green_occ_map, "POS_Y", blur_inds)
+                red_occ_blur = blur_image_direction(red_occ_map, "NEG_X", blur_inds)
+                green_occ_blur = blur_image_direction(green_occ_map, "POS_X", blur_inds)
         else:
             if dc > 0:
-                red_occ_map = blur_image_direction(red_occ_map, "NEG_X", blur_inds)
-                green_occ_map = blur_image_direction(green_occ_map, "POS_X", blur_inds)
+                red_occ_blur = blur_image_direction(red_occ_map, "NEG_Y", blur_inds)
+                green_occ_blur = blur_image_direction(green_occ_map, "POS_Y", blur_inds)
             else:
-                red_occ_map = blur_image_direction(red_occ_map, "POS_X", blur_inds)
-                green_occ_map = blur_image_direction(green_occ_map, "NEG_X", blur_inds)
+                red_occ_blur = blur_image_direction(red_occ_map, "POS_Y", blur_inds)
+                green_occ_blur = blur_image_direction(green_occ_map, "NEG_Y", blur_inds)
 
-        #print(red_occ_map.min(), red_occ_map.max(), blur_inds)
-        #for r in range(red_occ_map.shape[0]):
-        #    for c in range(red_occ_map.shape[1]):
-        #        if red_occ_map[r][c] > 0:
-        #            print("#", end = '')
-        #        else:
-        #            print(".", end = '')
-        #        if c == red_occ_map.shape[1] - 1:
-        #            print()
+
 
         # Define structuring element
         occ_mask = np.logical_or(red_occ_map > 0 , green_occ_map > 0).astype(np.uint8)
@@ -245,6 +240,16 @@ class LocalPlanner:
         kernel = np.ones((buff_inds, buff_inds), np.uint8) # add on 3 * map_res of 
         # Apply dilation filter
         dilated_map = cv2.dilate(occ_mask, kernel, iterations=1)        
+        dilated_map = np.logical_or(np.logical_or(dilated_map, green_occ_blur), red_occ_blur)
+
+        for c in range(dilated_map.shape[1] -1, -1, -1):
+            for r in range(dilated_map.shape[0] -1, -1, -1):
+                if dilated_map[r][c] > 0:
+                    print("#", end = '')
+                else:
+                    print(".", end = '')
+                if r == 0:
+                    print()
 
         weights = np.ones_like(occ_mask).astype(np.float32)
         weights[occ_mask] = np.inf

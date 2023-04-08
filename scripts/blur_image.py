@@ -25,12 +25,12 @@ def blur_image_direction(image, direction, px):
 if __name__ == "__main__":
 
     img = np.zeros((1000, 1000))
-    img[400:500, 400:500] = 1
+    img[800:805, 800:900] = 1
 
     cv2.imshow('before', img)
     
 
-    blur_img = blur_image_direction(img, 'POS_Y', 101)
+    blur_img = blur_image_direction(img, 'POS_Y', 95)
     cv2.imshow('after', blur_img)
 
     cv2.waitKey(0)

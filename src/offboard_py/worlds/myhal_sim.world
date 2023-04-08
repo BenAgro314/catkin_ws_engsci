@@ -101,18 +101,24 @@
     <include>
       <name>obs1</name>
       <pose>-1.5 1.5 0 0 0 0</pose>
-      <uri>model://green_obstacle</uri>
+      <uri>model://red_obstacle</uri>
     </include>
 
     <include>
       <name>obs2</name>
       <pose>1.2 2.3 0 0 0 0</pose>
-      <uri>model://red_obstacle</uri>
+      <uri>model://green_obstacle</uri>
     </include>
 
     <include>
       <name>obs3</name>
-      <pose>2.0 1 0 0 0 0</pose>
+      <pose>2.0 -1.2 0 0 0 0</pose>
+      <uri>model://red_obstacle</uri>
+    </include>
+
+    <include>
+      <name>obs4</name>
+      <pose>0.0 -2 0 0 0 0</pose>
       <uri>model://green_obstacle</uri>
     </include>
 
