@@ -107,7 +107,7 @@
     <include>
       <name>obs2</name>
       <pose>1.2 2.3 0 0 0 0</pose>
-      <uri>model://green_obstacle</uri>
+      <uri>model://red_obstacle</uri>
     </include>
 
     <include>

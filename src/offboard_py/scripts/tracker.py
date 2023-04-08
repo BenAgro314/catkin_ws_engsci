@@ -139,10 +139,10 @@ class Tracker:
         self.logits[pos_mask] += self.alpha
         self.logits = np.clip(self.logits, a_min = -2, a_max = 10)
 
-        self.logits[-self.wall_inds:] = 10
-        self.logits[:, -self.wall_inds:] = 10
-        self.logits[:self.wall_inds] = 10
-        self.logits[:, :self.wall_inds] = 10
+        #self.logits[-self.wall_inds:] = 10
+        #self.logits[:, -self.wall_inds:] = 10
+        #self.logits[:self.wall_inds] = 10
+        #self.logits[:, :self.wall_inds] = 10
         self.publish_occupancy_grid(self.logits[..., GREEN_IND], self.green_occ_map_pub)
         self.publish_occupancy_grid(self.logits[..., RED_IND], self.red_occ_map_pub)
 

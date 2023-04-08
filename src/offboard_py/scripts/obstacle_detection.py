@@ -274,7 +274,6 @@ class Detector:
         min_area = 1000 * scale
         det_points = []
 
-        color_features = {'c'}
         for contour in yellow_contours:
             area = cv2.contourArea(contour)
             if area > min_area:

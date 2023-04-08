@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from enum import IntEnum
 from typing import List
 import cv2
 from threading import Lock
@@ -15,18 +16,43 @@ from nav_msgs.msg import Path
 from std_msgs.msg import Header
 import pyastar2d
 
+
 def coll_free(p1, p2, coll_fn, steps=10):
     pts = np.linspace(p1, p2, steps)
     return not np.any(coll_fn(pts))
 
+
+def blur_image_direction(image, direction, px):
+    # Define the kernel size and shape based on the direction
+    # Perform the convolution using the kernel
+    if direction == 'POS_X':
+        kernel = np.ones((1, px), np.uint8)
+        blurred_image = cv2.dilate(image, kernel, iterations = 1, anchor = (px-1,0))
+    elif direction == 'POS_Y':
+        kernel = np.ones((px, 1), np.uint8)
+        blurred_image = cv2.dilate(image, kernel, iterations = 1, anchor = (0, px-1))
+    elif direction == 'NEG_X':
+        kernel = np.ones((1, px), np.uint8)
+        blurred_image = cv2.dilate(image, kernel, iterations =1, anchor =(0,0))
+    elif direction == 'NEG_Y':
+        kernel = np.ones((px, 1), np.uint8)
+        blurred_image = cv2.dilate(image, kernel, iterations = 1, anchor =(0,0))
+    else:
+        raise ValueError("Invalid direction. Must be POS_X, POS_Y, NEG_X, or NEG_Y.")
+
+    return blurred_image
+
+
+
+
 class LocalPlanner:
 
     def __init__(self):
-        self.green_map_sub= rospy.Subscriber("green_occ_map", OccupancyGrid, callback = self.red_map_callback)
+        self.green_map_sub= rospy.Subscriber("green_occ_map", OccupancyGrid, callback = self.green_map_callback)
         self.green_map_lock = Lock()
         self.green_map = None
 
-        self.red_map_sub= rospy.Subscriber("red_occ_map", OccupancyGrid, callback = self.green_map_callback)
+        self.red_map_sub= rospy.Subscriber("red_occ_map", OccupancyGrid, callback = self.red_map_callback)
         self.red_map_lock = Lock()
         self.red_map = None
 
@@ -41,6 +67,7 @@ class LocalPlanner:
         self.path_pub = rospy.Publisher('local_plan', Path, queue_size=10)
 
         self.vehicle_radius = 0.45
+        self.blur_dist = 1.0
         self.current_path = None
 
     def point_to_ind(self, pt):
@@ -175,8 +202,45 @@ class LocalPlanner:
                 return
             red_occ_map = self.red_map.copy()[:, :, 0]
 
+        red_occ_map = (red_occ_map > 50).astype(np.uint8)
+        green_occ_map = (green_occ_map > 50).astype(np.uint8)
+
+        x1, y1 = get_config_from_pose_stamped(t_map_d)[:2]
+        x2, y2 = get_config_from_pose_stamped(t_map_d_goal)[:2]
+        r1, c1 = self.point_to_ind(np.array([x1, y1, 0])[:, None]) # turn those into indices into occ map
+        r2, c2 = self.point_to_ind(np.array([x2, y2, 0])[:, None])
+
+        dr = r2 - r1
+        dc = c2 - c1
+        blur_inds = int(round(self.blur_dist / self.map_res))
+        if np.abs(dr) > np.abs(dc):
+            if dr > 0:
+                #dir = Dir.POS_X
+                red_occ_map = blur_image_direction(red_occ_map, "POS_Y", blur_inds)
+                green_occ_map = blur_image_direction(green_occ_map, "NEG_Y", blur_inds)
+            else:
+                red_occ_map = blur_image_direction(red_occ_map, "NEG_Y", blur_inds)
+                green_occ_map = blur_image_direction(green_occ_map, "POS_Y", blur_inds)
+        else:
+            if dc > 0:
+                red_occ_map = blur_image_direction(red_occ_map, "NEG_X", blur_inds)
+                green_occ_map = blur_image_direction(green_occ_map, "POS_X", blur_inds)
+            else:
+                red_occ_map = blur_image_direction(red_occ_map, "POS_X", blur_inds)
+                green_occ_map = blur_image_direction(green_occ_map, "NEG_X", blur_inds)
+
+        #print(red_occ_map.min(), red_occ_map.max(), blur_inds)
+        #for r in range(red_occ_map.shape[0]):
+        #    for c in range(red_occ_map.shape[1]):
+        #        if red_occ_map[r][c] > 0:
+        #            print("#", end = '')
+        #        else:
+        #            print(".", end = '')
+        #        if c == red_occ_map.shape[1] - 1:
+        #            print()
+
         # Define structuring element
-        occ_mask = np.logical_or(red_occ_map > 50, green_occ_map > 50).astype(np.uint8)
+        occ_mask = np.logical_or(red_occ_map > 0 , green_occ_map > 0).astype(np.uint8)
         buff_inds = 2 * int(round(self.vehicle_radius / self.map_res)) + 1
         kernel = np.ones((buff_inds, buff_inds), np.uint8) # add on 3 * map_res of 
         # Apply dilation filter
