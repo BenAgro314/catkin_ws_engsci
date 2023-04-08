@@ -152,7 +152,7 @@ def reproject_2D_to_3D_v2(height, center, actual_height, K):
     center_y_3D = center_plane[1] * depth
 
     # Return the 3D coordinates of the center of the bounding box
-    return center_x_3D, center_y_3D, depth
+    return [center_x_3D, center_y_3D, depth]
 
 class Detector:
 
@@ -273,6 +273,8 @@ class Detector:
 
         min_area = 1000 * scale
         det_points = []
+
+        color_features = {'c'}
         for contour in yellow_contours:
             area = cv2.contourArea(contour)
             if area > min_area:
@@ -299,8 +301,6 @@ class Detector:
                         #bbox = [x/scale, y/scale, (x+w)/scale, (y+h)/scale] # x_min, y_min, x_max, y_max
                         #p_box_cam =  reproject_2D_to_3D(bbox, 0.3, self.K)
                         p_box_cam =  reproject_2D_to_3D_v2(h, rect[0], 0.3, self.K)
-                        det_points.append(np.array(p_box_cam))
-
 
 
                         mask = np.zeros_like(hsv_image[:,:,0])
@@ -310,12 +310,15 @@ class Detector:
 
                         if green_val > 1e-4:
                             cv2.drawContours(image,[box],0,(0,255,0),2)
+                            p_box_cam.append(ord('g')) # green
                         else: 
                             cv2.drawContours(image,[box],0,(0,0,255),2)
+                            p_box_cam.append(ord('r')) # red
 
+                        det_points.append(np.array(p_box_cam))
 
         det_points = np.stack(det_points, axis = 0) if len(det_points) > 0 else np.array([])
-        pc = numpy_to_pointcloud2(det_points, frame_id='map')
+        pc = numpy_to_pointcloud2(det_points, frame_id='map', extra_features=['c'])
         pc.header.stamp = image_time
         self.det_point_pub.publish(pc)
 

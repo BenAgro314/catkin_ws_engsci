@@ -47,15 +47,15 @@ class Tracker:
     def publish_occupancy_grid(self):
         map = np.exp(self.logits) / (1 + np.exp(self.logits))
 
-        mask = map > 0.5
-        for r in range(map.shape[0]):
-            for c in range(map.shape[1]):
-                if mask[r][c]:
-                    print("#", end = '')
-                else:
-                    print(".", end = '')
-                if c == map.shape[1] - 1:
-                    print()
+        #mask = map > 0.5
+        #for r in range(map.shape[0]):
+        #    for c in range(map.shape[1]):
+        #        if mask[r][c]:
+        #            print("#", end = '')
+        #        else:
+        #            print(".", end = '')
+        #        if c == map.shape[1] - 1:
+        #            print()
 
         height, width = map.shape
         occupancy_grid = OccupancyGrid()
@@ -111,13 +111,16 @@ class Tracker:
         cv2.fillPoly(neg_mask, [pts], 1)
         neg_mask = neg_mask == 1
 
-        imx_points = pointcloud2_to_numpy(msg)
+        imx_points = pointcloud2_to_numpy(msg, extra_keys=('c',))
         for pt_imx in imx_points:
-            pt_imx = np.concatenate((pt_imx[:, None], np.array([[1]])), axis = 0) # (3, 1)
+            color = chr(int(pt_imx[3]))
+
+            pt_imx = np.concatenate((pt_imx[:3, None], np.array([[1]])), axis = 0) # (3, 1)
             pt_map = t_map_imx @ pt_imx
             pt_map[2, 0] = 0.0 # zero out z
             inds = self.point_to_ind(pt_map)[::-1]
             r = int(round(self.radius / self.map_res))
+
             pos_mask[max(0, inds[1] - r):min(inds[1]+r+1, pos_mask.shape[0]-1), max(0, inds[0]-r):min(inds[0]+r+1, pos_mask.shape[1]-1)] = 1
             #cv2.circle(pos_mask, , , 1, thickness = -1)
 
