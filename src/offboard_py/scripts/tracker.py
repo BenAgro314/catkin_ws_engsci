@@ -17,7 +17,6 @@ from skimage.draw import disk, polygon
 GREEN_IND = 0
 RED_IND = 1
 
-
 class Tracker:
 
     def __init__(self):
@@ -51,16 +50,6 @@ class Tracker:
 
     def publish_occupancy_grid(self, logits, pub):
         map = np.exp(logits) / (1 + np.exp(logits))
-
-        #mask = map > 0.5
-        #for r in range(map.shape[0]):
-        #    for c in range(map.shape[1]):
-        #        if mask[r][c]:
-        #            print("#", end = '')
-        #        else:
-        #            print(".", end = '')
-        #        if c == map.shape[1] - 1:
-        #            print()
 
         height, width = map.shape
         occupancy_grid = OccupancyGrid()
@@ -143,6 +132,17 @@ class Tracker:
         #self.logits[:, -self.wall_inds:] = 10
         #self.logits[:self.wall_inds] = 10
         #self.logits[:, :self.wall_inds] = 10
+
+        mask = np.logical_or(self.logits[..., 0] > 0, self.logits[..., 1] > 0)
+        for c in range(mask.shape[1] -1, -1, -1):
+            for r in range(mask.shape[0] -1, -1, -1):
+                if mask[r][c] > 0:
+                    print("#", end = '')
+                else:
+                    print(".", end = '')
+                if r == 0:
+                    print()
+
         self.publish_occupancy_grid(self.logits[..., GREEN_IND], self.green_occ_map_pub)
         self.publish_occupancy_grid(self.logits[..., RED_IND], self.red_occ_map_pub)
 

@@ -16,6 +16,7 @@ from nav_msgs.msg import Path
 from std_msgs.msg import Header
 import pyastar2d
 
+USE_COLOR = False
 
 def coll_free(p1, p2, coll_fn, steps=10):
     pts = np.linspace(p1, p2, steps)
@@ -202,35 +203,37 @@ class LocalPlanner:
                 return
             red_occ_map = self.red_map.copy()[:, :, 0]
 
+
         red_occ_map = (red_occ_map > 50).astype(np.uint8)
         green_occ_map = (green_occ_map > 50).astype(np.uint8)
 
-        x1, y1 = get_config_from_pose_stamped(t_map_d)[:2]
-        x2, y2 = get_config_from_pose_stamped(t_map_d_goal)[:2]
-        r1, c1 = self.point_to_ind(np.array([x1, y1, 0])[:, None]) # turn those into indices into occ map
-        r2, c2 = self.point_to_ind(np.array([x2, y2, 0])[:, None])
+        if USE_COLOR:
+            x1, y1 = get_config_from_pose_stamped(t_map_d)[:2]
+            x2, y2 = get_config_from_pose_stamped(t_map_d_goal)[:2]
+            r1, c1 = self.point_to_ind(np.array([x1, y1, 0])[:, None]) # turn those into indices into occ map
+            r2, c2 = self.point_to_ind(np.array([x2, y2, 0])[:, None])
 
-        dr = r2 - r1
-        dc = c2 - c1
-        #print('dr', dr)
-        #print('dc', dc)
-        #print()
-        blur_inds = int(round(self.blur_dist / self.map_res))
-        if np.abs(dr) > np.abs(dc):
-            if dr > 0:
-                #dir = Dir.POS_X
-                red_occ_blur = blur_image_direction(red_occ_map, "POS_X", blur_inds)
-                green_occ_blur = blur_image_direction(green_occ_map, "NEG_X", blur_inds)
+            dr = r2 - r1
+            dc = c2 - c1
+            #print('dr', dr)
+            #print('dc', dc)
+            #print()
+            blur_inds = int(round(self.blur_dist / self.map_res))
+            if np.abs(dr) > np.abs(dc):
+                if dr > 0:
+                    #dir = Dir.POS_X
+                    red_occ_blur = blur_image_direction(red_occ_map, "POS_X", blur_inds)
+                    green_occ_blur = blur_image_direction(green_occ_map, "NEG_X", blur_inds)
+                else:
+                    red_occ_blur = blur_image_direction(red_occ_map, "NEG_X", blur_inds)
+                    green_occ_blur = blur_image_direction(green_occ_map, "POS_X", blur_inds)
             else:
-                red_occ_blur = blur_image_direction(red_occ_map, "NEG_X", blur_inds)
-                green_occ_blur = blur_image_direction(green_occ_map, "POS_X", blur_inds)
-        else:
-            if dc > 0:
-                red_occ_blur = blur_image_direction(red_occ_map, "NEG_Y", blur_inds)
-                green_occ_blur = blur_image_direction(green_occ_map, "POS_Y", blur_inds)
-            else:
-                red_occ_blur = blur_image_direction(red_occ_map, "POS_Y", blur_inds)
-                green_occ_blur = blur_image_direction(green_occ_map, "NEG_Y", blur_inds)
+                if dc > 0:
+                    red_occ_blur = blur_image_direction(red_occ_map, "NEG_Y", blur_inds)
+                    green_occ_blur = blur_image_direction(green_occ_map, "POS_Y", blur_inds)
+                else:
+                    red_occ_blur = blur_image_direction(red_occ_map, "POS_Y", blur_inds)
+                    green_occ_blur = blur_image_direction(green_occ_map, "NEG_Y", blur_inds)
 
 
 
@@ -240,20 +243,24 @@ class LocalPlanner:
         kernel = np.ones((buff_inds, buff_inds), np.uint8) # add on 3 * map_res of 
         # Apply dilation filter
         dilated_map = cv2.dilate(occ_mask, kernel, iterations=1)        
-        dilated_map = np.logical_or(np.logical_or(dilated_map, green_occ_blur), red_occ_blur)
+        #dilated_map = np.logical_or(np.logical_or(dilated_map, green_occ_blur), red_occ_blur)
 
-        for c in range(dilated_map.shape[1] -1, -1, -1):
-            for r in range(dilated_map.shape[0] -1, -1, -1):
-                if dilated_map[r][c] > 0:
-                    print("#", end = '')
-                else:
-                    print(".", end = '')
-                if r == 0:
-                    print()
+        # for c in range(dilated_map.shape[1] -1, -1, -1):
+        #     for r in range(dilated_map.shape[0] -1, -1, -1):
+        #         if dilated_map[r][c] > 0:
+        #             print("#", end = '')
+        #         else:
+        #             print(".", end = '')
+        #         if r == 0:
+        #             print()
 
         weights = np.ones_like(occ_mask).astype(np.float32)
         weights[occ_mask] = np.inf
         weights[np.logical_and(~occ_mask, dilated_map)] = 100
+
+        if USE_COLOR:
+            weights[np.logical_and(np.logical_and(~occ_mask, ~dilated_map), red_occ_blur)] = 2 * np.pi / self.map_res
+            weights[np.logical_and(np.logical_and(~occ_mask, ~dilated_map), green_occ_blur)] = 2 * np.pi / self.map_res
         
         def collision_fn_strict(pt):
             if len(pt.shape) == 2:

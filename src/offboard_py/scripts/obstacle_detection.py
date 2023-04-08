@@ -13,6 +13,8 @@ from visualization_msgs.msg import Marker
 from sensor_msgs.msg import PointCloud2, PointField
 import sensor_msgs.point_cloud2 as pc2
 
+PUB_IMAGE = False
+
 def undistort_image(img, K, D):
     # Undistort the image
     img = cv2.undistort(img, K, D)
@@ -308,10 +310,12 @@ class Detector:
                         green_val = np.sum(np.logical_and(mask ,green_mask)) / np.sum(mask)
 
                         if green_val > 1e-4:
-                            cv2.drawContours(image,[box],0,(0,255,0),2)
+                            if PUB_IMAGE:
+                                cv2.drawContours(image,[box],0,(0,255,0),2)
                             p_box_cam.append(ord('g')) # green
                         else: 
-                            cv2.drawContours(image,[box],0,(0,0,255),2)
+                            if PUB_IMAGE:
+                                cv2.drawContours(image,[box],0,(0,0,255),2)
                             p_box_cam.append(ord('r')) # red
 
                         det_points.append(np.array(p_box_cam))
@@ -322,10 +326,11 @@ class Detector:
         self.det_point_pub.publish(pc)
 
         #msg = self.bridge.cv2_to_imgmsg(cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
-        msg = self.bridge.cv2_to_imgmsg(image)
-        #msg = self.bridge.cv2_to_imgmsg(yellow_segment)
-        #msg.header.stamp = rospy.Time.now()
-        self.seg_image_pub.publish(msg)
+        if PUB_IMAGE:
+            msg = self.bridge.cv2_to_imgmsg(image)
+            #msg = self.bridge.cv2_to_imgmsg(yellow_segment)
+            #msg.header.stamp = rospy.Time.now()
+            self.seg_image_pub.publish(msg)
 
 
 if __name__ == "__main__":
