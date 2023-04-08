@@ -1,22 +1,22 @@
 Performing C SOURCE FILE Test CMAKE_HAVE_LIBC_PTHREAD failed with the following output:
-Change Dir: /home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-cRXYlH
+Change Dir: /home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-fKky0s
 
-Run Build Command(s):/usr/bin/make -f Makefile cmTC_ec893/fast && /usr/bin/make  -f CMakeFiles/cmTC_ec893.dir/build.make CMakeFiles/cmTC_ec893.dir/build
-make[1]: Entering directory '/home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-cRXYlH'
-Building C object CMakeFiles/cmTC_ec893.dir/src.c.o
-/usr/bin/cc -DCMAKE_HAVE_LIBC_PTHREAD   -o CMakeFiles/cmTC_ec893.dir/src.c.o -c /home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-cRXYlH/src.c
-Linking C executable cmTC_ec893
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ec893.dir/link.txt --verbose=1
-/usr/bin/cc -rdynamic CMakeFiles/cmTC_ec893.dir/src.c.o -o cmTC_ec893 
-/usr/bin/ld: CMakeFiles/cmTC_ec893.dir/src.c.o: in function `main':
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_9df38/fast && /usr/bin/make  -f CMakeFiles/cmTC_9df38.dir/build.make CMakeFiles/cmTC_9df38.dir/build
+make[1]: Entering directory '/home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-fKky0s'
+Building C object CMakeFiles/cmTC_9df38.dir/src.c.o
+/usr/bin/cc -DCMAKE_HAVE_LIBC_PTHREAD   -o CMakeFiles/cmTC_9df38.dir/src.c.o -c /home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-fKky0s/src.c
+Linking C executable cmTC_9df38
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9df38.dir/link.txt --verbose=1
+/usr/bin/cc -rdynamic CMakeFiles/cmTC_9df38.dir/src.c.o -o cmTC_9df38 
+/usr/bin/ld: CMakeFiles/cmTC_9df38.dir/src.c.o: in function `main':
 src.c:(.text+0x46): undefined reference to `pthread_create'
 /usr/bin/ld: src.c:(.text+0x52): undefined reference to `pthread_detach'
 /usr/bin/ld: src.c:(.text+0x5e): undefined reference to `pthread_cancel'
 /usr/bin/ld: src.c:(.text+0x6f): undefined reference to `pthread_join'
 collect2: error: ld returned 1 exit status
-make[1]: *** [CMakeFiles/cmTC_ec893.dir/build.make:99: cmTC_ec893] Error 1
-make[1]: Leaving directory '/home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-cRXYlH'
-make: *** [Makefile:127: cmTC_ec893/fast] Error 2
+make[1]: *** [CMakeFiles/cmTC_9df38.dir/build.make:99: cmTC_9df38] Error 1
+make[1]: Leaving directory '/home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-fKky0s'
+make: *** [Makefile:127: cmTC_9df38/fast] Error 2
 
 
 Source file was:
@@ -42,20 +42,20 @@ int main(void)
 
 
 Determining if the function pthread_create exists in the pthreads failed with the following output:
-Change Dir: /home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-uSQwQG
+Change Dir: /home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-bcrVXt
 
-Run Build Command(s):/usr/bin/make -f Makefile cmTC_8f7ec/fast && /usr/bin/make  -f CMakeFiles/cmTC_8f7ec.dir/build.make CMakeFiles/cmTC_8f7ec.dir/build
-make[1]: Entering directory '/home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-uSQwQG'
-Building C object CMakeFiles/cmTC_8f7ec.dir/CheckFunctionExists.c.o
-/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create -o CMakeFiles/cmTC_8f7ec.dir/CheckFunctionExists.c.o -c /home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-uSQwQG/CheckFunctionExists.c
-Linking C executable cmTC_8f7ec
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_8f7ec.dir/link.txt --verbose=1
-/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create -rdynamic CMakeFiles/cmTC_8f7ec.dir/CheckFunctionExists.c.o -o cmTC_8f7ec  -lpthreads 
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_f5da5/fast && /usr/bin/make  -f CMakeFiles/cmTC_f5da5.dir/build.make CMakeFiles/cmTC_f5da5.dir/build
+make[1]: Entering directory '/home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-bcrVXt'
+Building C object CMakeFiles/cmTC_f5da5.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create -o CMakeFiles/cmTC_f5da5.dir/CheckFunctionExists.c.o -c /home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-bcrVXt/CheckFunctionExists.c
+Linking C executable cmTC_f5da5
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f5da5.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create -rdynamic CMakeFiles/cmTC_f5da5.dir/CheckFunctionExists.c.o -o cmTC_f5da5  -lpthreads 
 /usr/bin/ld: cannot find -lpthreads
 collect2: error: ld returned 1 exit status
-make[1]: *** [CMakeFiles/cmTC_8f7ec.dir/build.make:99: cmTC_8f7ec] Error 1
-make[1]: Leaving directory '/home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-uSQwQG'
-make: *** [Makefile:127: cmTC_8f7ec/fast] Error 2
+make[1]: *** [CMakeFiles/cmTC_f5da5.dir/build.make:99: cmTC_f5da5] Error 1
+make[1]: Leaving directory '/home/agrobenj/catkin_ws/build/rob521_lab1/CMakeFiles/CMakeScratch/TryCompile-bcrVXt'
+make: *** [Makefile:127: cmTC_f5da5/fast] Error 2
 
 
 

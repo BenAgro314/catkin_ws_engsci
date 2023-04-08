@@ -1,4 +1,4 @@
-Linked: (/home/agrobenj/catkin_ws/devel/.private/realsense_ros_gazebo/lib/librealsense_gazebo_plugin.so, /home/agrobenj/catkin_ws/devel/lib/librealsense_gazebo_plugin.so)
-Linked: (/home/agrobenj/catkin_ws/devel/.private/realsense_ros_gazebo/lib/pkgconfig/realsense_ros_gazebo.pc, /home/agrobenj/catkin_ws/devel/lib/pkgconfig/realsense_ros_gazebo.pc)
-Linked: (/home/agrobenj/catkin_ws/devel/.private/realsense_ros_gazebo/share/realsense_ros_gazebo/cmake/realsense_ros_gazeboConfig.cmake, /home/agrobenj/catkin_ws/devel/share/realsense_ros_gazebo/cmake/realsense_ros_gazeboConfig.cmake)
-Linked: (/home/agrobenj/catkin_ws/devel/.private/realsense_ros_gazebo/share/realsense_ros_gazebo/cmake/realsense_ros_gazeboConfig-version.cmake, /home/agrobenj/catkin_ws/devel/share/realsense_ros_gazebo/cmake/realsense_ros_gazeboConfig-version.cmake)
+Symlinking /home/agrobenj/catkin_ws/devel/lib/librealsense_gazebo_plugin.so
+Symlinking /home/agrobenj/catkin_ws/devel/lib/pkgconfig/realsense_ros_gazebo.pc
+Symlinking /home/agrobenj/catkin_ws/devel/share/realsense_ros_gazebo/cmake/realsense_ros_gazeboConfig.cmake
+Symlinking /home/agrobenj/catkin_ws/devel/share/realsense_ros_gazebo/cmake/realsense_ros_gazeboConfig-version.cmake

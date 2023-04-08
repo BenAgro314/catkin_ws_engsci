@@ -1,3 +1,3 @@
-Linked: (/home/agrobenj/catkin_ws/devel/.private/rob521_lab2/lib/pkgconfig/rob521_lab2.pc, /home/agrobenj/catkin_ws/devel/lib/pkgconfig/rob521_lab2.pc)
-Linked: (/home/agrobenj/catkin_ws/devel/.private/rob521_lab2/share/rob521_lab2/cmake/rob521_lab2Config-version.cmake, /home/agrobenj/catkin_ws/devel/share/rob521_lab2/cmake/rob521_lab2Config-version.cmake)
-Linked: (/home/agrobenj/catkin_ws/devel/.private/rob521_lab2/share/rob521_lab2/cmake/rob521_lab2Config.cmake, /home/agrobenj/catkin_ws/devel/share/rob521_lab2/cmake/rob521_lab2Config.cmake)
+Symlinking /home/agrobenj/catkin_ws/devel/lib/pkgconfig/rob521_lab2.pc
+Symlinking /home/agrobenj/catkin_ws/devel/share/rob521_lab2/cmake/rob521_lab2Config-version.cmake
+Symlinking /home/agrobenj/catkin_ws/devel/share/rob521_lab2/cmake/rob521_lab2Config.cmake

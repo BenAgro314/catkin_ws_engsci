@@ -239,8 +239,6 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
   CMakeLists.txt:23 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
 [0m
-[36m--[0m Found PCL_SEARCH: /usr/lib/x86_64-linux-gnu/libpcl_search.so
-[36m--[0m looking for PCL_SAMPLE_CONSENSUS
 [33mCMake Warning (dev) at /usr/share/cmake-3.25/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
   The package name passed to `find_package_handle_standard_args`
   (PCL_SAMPLE_CONSENSUS) does not match the name of the calling package
@@ -252,6 +250,8 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
   CMakeLists.txt:23 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
 [0m
+[36m--[0m Found PCL_SEARCH: /usr/lib/x86_64-linux-gnu/libpcl_search.so
+[36m--[0m looking for PCL_SAMPLE_CONSENSUS
 [36m--[0m Found PCL_SAMPLE_CONSENSUS: /usr/lib/x86_64-linux-gnu/libpcl_sample_consensus.so
 [36m--[0m looking for PCL_FILTERS
 [33mCMake Warning (dev) at /usr/share/cmake-3.25/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
@@ -266,8 +266,6 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
 [0m
 [36m--[0m Found PCL_FILTERS: /usr/lib/x86_64-linux-gnu/libpcl_filters.so
 [36m--[0m looking for PCL_2D
-[36m--[0m Found PCL_2D: /usr/include/pcl-1.10
-[36m--[0m looking for PCL_GEOMETRY
 [33mCMake Warning (dev) at /usr/share/cmake-3.25/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
   The package name passed to `find_package_handle_standard_args` (PCL_2D)
   does not match the name of the calling package (PCL).  This can lead to
@@ -278,7 +276,8 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
   CMakeLists.txt:23 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
 [0m
-[36m--[0m Found PCL_GEOMETRY: /usr/include/pcl-1.10
+[36m--[0m Found PCL_2D: /usr/include/pcl-1.10
+[36m--[0m looking for PCL_GEOMETRY
 [33mCMake Warning (dev) at /usr/share/cmake-3.25/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
   The package name passed to `find_package_handle_standard_args`
   (PCL_GEOMETRY) does not match the name of the calling package (PCL).  This
@@ -289,6 +288,7 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
   CMakeLists.txt:23 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
 [0m
+[36m--[0m Found PCL_GEOMETRY: /usr/include/pcl-1.10
 [36m--[0m looking for PCL_IO
 [33mCMake Warning (dev) at /usr/share/cmake-3.25/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
   The package name passed to `find_package_handle_standard_args` (PCL_IO)
@@ -312,8 +312,6 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
   CMakeLists.txt:23 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
 [0m
-[36m--[0m Found PCL_FEATURES: /usr/lib/x86_64-linux-gnu/libpcl_features.so
-[36m--[0m looking for PCL_ML
 [33mCMake Warning (dev) at /usr/share/cmake-3.25/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
   The package name passed to `find_package_handle_standard_args` (PCL_ML)
   does not match the name of the calling package (PCL).  This can lead to
@@ -323,8 +321,10 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
   /usr/lib/x86_64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
   CMakeLists.txt:23 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
-[0m
+[36m--[0m Found PCL_FEATURES: /usr/lib/x86_64-linux-gnu/libpcl_features.so
+[36m--[0m looking for PCL_ML
 [36m--[0m Found PCL_ML: /usr/lib/x86_64-linux-gnu/libpcl_ml.so
+[0m
 [36m--[0m looking for PCL_SEGMENTATION
 [33mCMake Warning (dev) at /usr/share/cmake-3.25/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
   The package name passed to `find_package_handle_standard_args`
@@ -372,8 +372,6 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
   CMakeLists.txt:23 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
 [0m
-[36m--[0m Found PCL_REGISTRATION: /usr/lib/x86_64-linux-gnu/libpcl_registration.so
-[36m--[0m looking for PCL_KEYPOINTS
 [33mCMake Warning (dev) at /usr/share/cmake-3.25/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
   The package name passed to `find_package_handle_standard_args`
   (PCL_KEYPOINTS) does not match the name of the calling package (PCL).  This
@@ -384,6 +382,8 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
   CMakeLists.txt:23 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
 [0m
+[36m--[0m Found PCL_REGISTRATION: /usr/lib/x86_64-linux-gnu/libpcl_registration.so
+[36m--[0m looking for PCL_KEYPOINTS
 [36m--[0m Found PCL_KEYPOINTS: /usr/lib/x86_64-linux-gnu/libpcl_keypoints.so
 [36m--[0m looking for PCL_TRACKING
 [33mCMake Warning (dev) at /usr/share/cmake-3.25/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
