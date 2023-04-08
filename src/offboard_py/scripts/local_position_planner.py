@@ -22,8 +22,14 @@ def coll_free(p1, p2, coll_fn, steps=10):
 class LocalPlanner:
 
     def __init__(self):
-        self.map_sub= rospy.Subscriber("occ_map", OccupancyGrid, callback = self.map_callback)
-        self.map = None
+        self.green_map_sub= rospy.Subscriber("green_occ_map", OccupancyGrid, callback = self.red_map_callback)
+        self.green_map_lock = Lock()
+        self.green_map = None
+
+        self.red_map_sub= rospy.Subscriber("red_occ_map", OccupancyGrid, callback = self.green_map_callback)
+        self.red_map_lock = Lock()
+        self.red_map = None
+
         self.map_width = None
         self.map_height = None
         self.map_res = None
@@ -32,7 +38,6 @@ class LocalPlanner:
         self.waypoint_trans_ths = 0.15 # 0.08 # used in pose_is_close
         self.waypoint_yaw_ths = np.deg2rad(10.0) # used in pose_is_close
 
-        self.map_lock = Lock()
         self.path_pub = rospy.Publisher('local_plan', Path, queue_size=10)
 
         self.vehicle_radius = 0.45
@@ -64,14 +69,21 @@ class LocalPlanner:
             path_msg.poses.append(pose)
         return path_msg
 
-    def map_callback(self, map_msg):
-        with self.map_lock:
+    def red_map_callback(self, map_msg):
+        with self.red_map_lock:
             self.map_width = map_msg.info.width
             self.map_height = map_msg.info.height
             self.map_res = map_msg.info.resolution
             self.map_origin = map_msg.info.origin.position
-            self.map = np.array(map_msg.data, dtype=np.uint8).reshape((self.map_height, self.map_width, 1))
-        pass
+            self.red_map = np.array(map_msg.data, dtype=np.uint8).reshape((self.map_height, self.map_width, 1))
+
+    def green_map_callback(self, map_msg):
+        with self.green_map_lock:
+            self.map_width = map_msg.info.width
+            self.map_height = map_msg.info.height
+            self.map_res = map_msg.info.resolution
+            self.map_origin = map_msg.info.origin.position
+            self.green_map = np.array(map_msg.data, dtype=np.uint8).reshape((self.map_height, self.map_width, 1))
 
 
     def plan(self, weights, t_map_d, t_map_d_goal, collision_fn):
@@ -154,19 +166,23 @@ class LocalPlanner:
 
         t = time.time()
 
-        with self.map_lock:
-            if self.map is None:
+        with self.green_map_lock:
+            if self.green_map is None:
                 return
-            occ_map = self.map.copy()[:, :, 0]
+            green_occ_map = self.green_map.copy()[:, :, 0]
+        with self.red_map_lock:
+            if self.red_map is None:
+                return
+            red_occ_map = self.red_map.copy()[:, :, 0]
 
         # Define structuring element
-        occ_mask = (occ_map > 50).astype(np.uint8)
+        occ_mask = np.logical_or(red_occ_map > 50, green_occ_map > 50).astype(np.uint8)
         buff_inds = 2 * int(round(self.vehicle_radius / self.map_res)) + 1
         kernel = np.ones((buff_inds, buff_inds), np.uint8) # add on 3 * map_res of 
         # Apply dilation filter
         dilated_map = cv2.dilate(occ_mask, kernel, iterations=1)        
 
-        weights = np.ones_like(occ_map).astype(np.float32)
+        weights = np.ones_like(occ_mask).astype(np.float32)
         weights[occ_mask] = np.inf
         weights[np.logical_and(~occ_mask, dilated_map)] = 100
         
@@ -192,7 +208,7 @@ class LocalPlanner:
             #circle_pts = self.inds_to_robot_circle(pts)
             rows = pts[..., 0]
             cols = pts[..., 1]
-            return np.any(occ_map[rows, cols] > 50, axis = 0)
+            return np.any(occ_mask[rows, cols] == 1, axis = 0)
 
         if self.current_path is None or len(self.current_path.poses) == 0 or not self.pose_is_close(t_map_d_goal, self.current_path.poses[-1]) or self.path_has_collision(self.current_path, collision_fn):
             self.current_path = self.plan(weights, t_map_d, t_map_d_goal, collision_fn_strict)
