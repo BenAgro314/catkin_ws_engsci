@@ -15,7 +15,7 @@ import sensor_msgs.point_cloud2 as pc2
 import time
 
 PUB_IMAGE = False
-UNDISTORT = True
+UNDISTORT = False
 
 def undistort_image(img, K, D):
     # Undistort the image

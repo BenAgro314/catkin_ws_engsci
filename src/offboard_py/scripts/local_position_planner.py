@@ -235,14 +235,19 @@ class LocalPlanner:
 
         # Define structuring element
         occ_mask = np.logical_or(red_occ_map > 0 , green_occ_map > 0).astype(np.uint8)
+        wall_width = 0.1
+        wall_inds = max(int(round(wall_width/self.map_res)), 1)
+        occ_mask[-wall_inds:] = 1
+        occ_mask[:, -wall_inds:] = 1
+        occ_mask[:wall_inds] = 1
+        occ_mask[:, :wall_inds] = 1
         buff_inds = 2 * int(round(self.vehicle_radius / self.map_res)) + 1
         kernel = np.ones((buff_inds, buff_inds), np.uint8) # add on 3 * map_res of 
         # Apply dilation filter
         dilated_map = cv2.dilate(occ_mask, kernel, iterations=1)        
         #dilated_map = np.logical_or(np.logical_or(dilated_map, green_occ_blur), red_occ_blur)
 
-        wall_width = 0.1
-        wall_inds = max(int(round(wall_width/self.map_res)), 1)
+        
 
         weights = np.ones_like(occ_mask).astype(np.float32)
         weights[occ_mask] = np.inf
@@ -252,10 +257,7 @@ class LocalPlanner:
             weights[np.logical_and(np.logical_and(~occ_mask, ~dilated_map), red_occ_blur)] = 2 * np.pi / self.map_res
             weights[np.logical_and(np.logical_and(~occ_mask, ~dilated_map), green_occ_blur)] = 2 * np.pi / self.map_res
 
-        weights[-wall_inds:] = np.inf
-        weights[:, -wall_inds:] = np.inf
-        weights[:wall_inds] = np.inf
-        weights[:, :wall_inds] = np.inf
+        
         
         def collision_fn_strict(pt):
             if len(pt.shape) == 2:
