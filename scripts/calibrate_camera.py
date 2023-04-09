@@ -20,6 +20,8 @@ imgpoints = []  # 2D points in image plane
 # Load the images of the checkerboard pattern
 images = glob.glob('/home/agrobenj/catkin_ws/images/imx219_calib_v2/*.png')
 
+#criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+
 # Loop through the images and find the checkerboard corners
 img_list = []
 for fname in images:
@@ -33,7 +35,13 @@ for fname in images:
     # If corners are found, add object points and image points
     if ret:
         objpoints.append(objp)
+        #corners2 = cv2.cornerSubPix(gray,corners, (11,11), (-1,-1), criteria)
         imgpoints.append(corners)
+
+        #corn_img = np.copy(img)
+        #cv2.drawChessboardCorners(corn_img, (num_corners_x, num_corners_y), corners, ret)
+        #cv2.imshow('img', corn_img)
+        #cv2.waitKey(0)
 
 # Calibrate the camera
 ret, K, D, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
@@ -49,10 +57,9 @@ def undistort_image(img, K, D):
     # Undistort the image
 
     shape = img.shape[:2]
-    print(shape)
-    map1, map2 = cv2.initUndistortRectifyMap(K, D, None, K, shape, cv2.CV_32FC1)
-    undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR)
-    #undistorted_img = cv2.undistort(img, K, D)
+    #map1, map2 = cv2.initUndistortRectifyMap(K, D, None, K, shape, cv2.CV_32FC1)
+    #undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR)
+    undistorted_img = cv2.undistort(img, K, D)
 
     # Display the original and undistorted images
     cv2.imshow('Original Image', img)
