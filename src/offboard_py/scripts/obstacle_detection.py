@@ -12,21 +12,15 @@ from cv_bridge import CvBridge
 from visualization_msgs.msg import Marker
 from sensor_msgs.msg import PointCloud2, PointField
 import sensor_msgs.point_cloud2 as pc2
+import time
 
-PUB_IMAGE = False
+PUB_IMAGE = True
+UNDISTORT = True
 
 def undistort_image(img, K, D):
     # Undistort the image
     img = cv2.undistort(img, K, D)
     return img
-
-    # Display the original and undistorted images
-    #cv2.imshow('Original Image', img)
-    #cv2.imshow('Undistorted Image', undistorted_img)
-
-    ## Wait for a key press and close the windows
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
 
 def scale_image(img, scale):
     width = int(img.shape[1] * scale)
@@ -183,6 +177,9 @@ class Detector:
         self.prev_rects = []
         self.image_sub= rospy.Subscriber("imx219_image", Image, callback = self.image_callback)
 
+        self.shape = (540, 540)
+        self.map1, self.map2 = cv2.initUndistortRectifyMap(self.K, self.D, None, self.K, self.shape, cv2.CV_32FC1)
+
     def publish_cylinder_marker(self, w_fit, C_fit, r_fit, frame_id):
         marker = Marker()
         marker.header.frame_id = frame_id  # Frame in which the marker is defined
@@ -238,7 +235,10 @@ class Detector:
         roll, pitch, yaw = quaternion_to_euler(q.x, q.y, q.z, q.w)
 
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+        assert self.shape == image.shape[:2]
         #image = undistort_image(image, self.K, self.D)
+        if UNDISTORT:
+            image = cv2.remap(image, self.map1, self.map2, interpolation=cv2.INTER_LINEAR)
         image = rotate_image(image, np.rad2deg(pitch))
         scale = 1.0
         image = scale_image(image, scale)

@@ -47,7 +47,12 @@ print(D)
 print("Showing undistored images:")
 def undistort_image(img, K, D):
     # Undistort the image
-    undistorted_img = cv2.undistort(img, K, D)
+
+    shape = img.shape[:2]
+    print(shape)
+    map1, map2 = cv2.initUndistortRectifyMap(K, D, None, K, shape, cv2.CV_32FC1)
+    undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR)
+    #undistorted_img = cv2.undistort(img, K, D)
 
     # Display the original and undistorted images
     cv2.imshow('Original Image', img)

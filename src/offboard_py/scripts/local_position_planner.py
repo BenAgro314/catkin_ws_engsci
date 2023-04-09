@@ -22,7 +22,6 @@ def coll_free(p1, p2, coll_fn, steps=10):
     pts = np.linspace(p1, p2, steps)
     return not np.any(coll_fn(pts))
 
-
 def blur_image_direction(image, direction, px):
     # Define the kernel size and shape based on the direction
     # Perform the convolution using the kernel
@@ -42,9 +41,6 @@ def blur_image_direction(image, direction, px):
         raise ValueError("Invalid direction. Must be POS_X, POS_Y, NEG_X, or NEG_Y.")
 
     return blurred_image
-
-
-
 
 class LocalPlanner:
 
@@ -245,14 +241,8 @@ class LocalPlanner:
         dilated_map = cv2.dilate(occ_mask, kernel, iterations=1)        
         #dilated_map = np.logical_or(np.logical_or(dilated_map, green_occ_blur), red_occ_blur)
 
-        # for c in range(dilated_map.shape[1] -1, -1, -1):
-        #     for r in range(dilated_map.shape[0] -1, -1, -1):
-        #         if dilated_map[r][c] > 0:
-        #             print("#", end = '')
-        #         else:
-        #             print(".", end = '')
-        #         if r == 0:
-        #             print()
+        wall_width = 0.1
+        wall_inds = max(int(round(wall_width/self.map_res)), 1)
 
         weights = np.ones_like(occ_mask).astype(np.float32)
         weights[occ_mask] = np.inf
@@ -261,6 +251,11 @@ class LocalPlanner:
         if USE_COLOR:
             weights[np.logical_and(np.logical_and(~occ_mask, ~dilated_map), red_occ_blur)] = 2 * np.pi / self.map_res
             weights[np.logical_and(np.logical_and(~occ_mask, ~dilated_map), green_occ_blur)] = 2 * np.pi / self.map_res
+
+        weights[-wall_inds:] = np.inf
+        weights[:, -wall_inds:] = np.inf
+        weights[:wall_inds] = np.inf
+        weights[:, :wall_inds] = np.inf
         
         def collision_fn_strict(pt):
             if len(pt.shape) == 2:
