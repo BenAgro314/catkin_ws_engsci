@@ -14,8 +14,8 @@ from sensor_msgs.msg import PointCloud2, PointField
 import sensor_msgs.point_cloud2 as pc2
 import time
 
-PUB_IMAGE = False
-UNDISTORT = False
+PUB_IMAGE = True
+UNDISTORT = True
 
 def undistort_image(img, K, D):
     # Undistort the image
@@ -296,8 +296,7 @@ class Detector:
                 aspect_ratio = float(w) / h
                 if 2.0 < aspect_ratio:  # Aspect ratio range for the object of interest
 
-
-                    if y_min > image.shape[0]//8 and y_max < 7 * image.shape[0]//8:
+                    if (y_min < image.shape[0]//8) == (y_max > 7 * image.shape[0]//8):
                         #cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
                         #bbox = [x/scale, y/scale, (x+w)/scale, (y+h)/scale] # x_min, y_min, x_max, y_max
                         #p_box_cam =  reproject_2D_to_3D(bbox, 0.3, self.K)
