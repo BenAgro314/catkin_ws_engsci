@@ -64,7 +64,7 @@ class LocalPlanner:
 
         self.path_pub = rospy.Publisher('local_plan', Path, queue_size=10)
 
-        self.vehicle_radius = 0.8
+        self.vehicle_radius = 0.45
         self.blur_dist = 2.0
         self.current_path = None
 
