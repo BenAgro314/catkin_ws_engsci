@@ -64,7 +64,7 @@ class LocalPlanner:
 
         self.path_pub = rospy.Publisher('local_plan', Path, queue_size=10)
 
-        self.vehicle_radius = 0.45
+        self.vehicle_radius = 0.8
         self.blur_dist = 2.0
         self.current_path = None
 
@@ -205,7 +205,6 @@ class LocalPlanner:
             if self.red_map is None:
                 return
             red_occ_map = self.red_map.copy()[:, :, 0]
-
 
         red_occ_map = (red_occ_map > 50).astype(np.uint8)
         green_occ_map = (green_occ_map > 50).astype(np.uint8)
