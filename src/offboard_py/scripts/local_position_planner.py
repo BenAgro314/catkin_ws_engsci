@@ -2,6 +2,7 @@
 from enum import IntEnum
 from typing import List
 import cv2
+from std_srvs.srv import Empty, EmptyResponse
 from threading import Lock
 from copy import deepcopy
 import time
@@ -16,7 +17,7 @@ from nav_msgs.msg import Path
 from std_msgs.msg import Header
 import pyastar2d
 
-USE_COLOR = False
+USE_COLOR = True
 
 def coll_free(p1, p2, coll_fn, steps=10):
     pts = np.linspace(p1, p2, steps)
@@ -45,11 +46,11 @@ def blur_image_direction(image, direction, px):
 class LocalPlanner:
 
     def __init__(self):
-        self.green_map_sub= rospy.Subscriber("green_occ_map", OccupancyGrid, callback = self.green_map_callback)
+
+
         self.green_map_lock = Lock()
         self.green_map = None
 
-        self.red_map_sub= rospy.Subscriber("red_occ_map", OccupancyGrid, callback = self.red_map_callback)
         self.red_map_lock = Lock()
         self.red_map = None
 
@@ -66,6 +67,12 @@ class LocalPlanner:
         self.vehicle_radius = 0.45
         self.blur_dist = 2.0
         self.current_path = None
+
+
+        self.green_map_sub= rospy.Subscriber("green_occ_map", OccupancyGrid, callback = self.green_map_callback)
+        self.red_map_sub= rospy.Subscriber("red_occ_map", OccupancyGrid, callback = self.red_map_callback)
+
+    
 
     def point_to_ind(self, pt):
         # pt.shape == (3, 1) or (2, 1)
@@ -168,7 +175,7 @@ class LocalPlanner:
             x2, y2, z2, _, _, yaw2 = get_config_from_pose_stamped(p2)
             dyaw = np.abs(shortest_signed_angle(yaw1, yaw2))
             dd = np.sqrt((x1 - x2)**2  + (y1 - y2)**2) # + (z1 - z2)**2)
-            n = max(1, int((dd / 0.2)) + int((dyaw / np.deg2rad(5))))
+            n = max(1, int((dd / 0.5)) + int((dyaw / np.deg2rad(5))))
             for i in range(n):
                 p = slerp_pose(p1.pose, p2.pose, rospy.Time(0), rospy.Time(1), rospy.Time((i+1)/n), 'map')
                 p.header.stamp = rospy.Time.now()

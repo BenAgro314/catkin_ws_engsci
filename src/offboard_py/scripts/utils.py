@@ -1,5 +1,6 @@
 import rospy
 import numpy as np
+import cv2
 from tf.transformations import quaternion_matrix, quaternion_from_matrix
 import os
 import yaml
@@ -124,7 +125,7 @@ def numpy_to_pose(transformation_matrix):
     pose.orientation.w = quaternion[3]
     return pose
 
-def numpy_to_transform_stamped(transformation_matrix, frame_id="parent_frame", child_frame_id=""):
+def numpy_to_transform_stamped(transformation_matrix, frame_id="parent_frame", child_frame_id="", time = None):
     # Check if the input is a 4x4 matrix
     if transformation_matrix.shape != (4, 4):
         raise ValueError("The input must be a 4x4 NumPy array")
@@ -135,7 +136,7 @@ def numpy_to_transform_stamped(transformation_matrix, frame_id="parent_frame", c
 
     # Create a PoseStamped message
     pose_stamped = TransformStamped()
-    pose_stamped.header.stamp = rospy.Time.now()
+    pose_stamped.header.stamp = rospy.Time.now() if time is None else time
     pose_stamped.header.frame_id = frame_id
     pose_stamped.child_frame_id = child_frame_id
 
@@ -593,3 +594,10 @@ def pointcloud2_to_numpy(pointcloud, extra_keys = None):
         extra_keys = tuple()
     points = np.array(list(pc2.read_points(pointcloud, field_names=('x', 'y', 'z') + extra_keys)))
     return points
+
+def scale_image(img, scale):
+    width = int(img.shape[1] * scale)
+    height = int(img.shape[0] * scale)
+    dim = (width, height)
+    resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+    return resized
