@@ -1,7 +1,7 @@
 poses:
 - position:
-    x: -2.40
-    y: 0.66
+    x: -2.407
+    y: 0.666
     z: 1.27
   orientation:
     x: 0.0
@@ -9,8 +9,8 @@ poses:
     z: 0.0
     w: 1.0
 - position:
-    x: -0.23
-    y: 2.206
+    x: -0.233
+    y: 2.2026
     z: 1.27
   orientation:
     x: 0.0
