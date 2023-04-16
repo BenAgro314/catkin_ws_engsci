@@ -86,7 +86,7 @@ def match_nums(image, ths = 0.6):
     rects_and_corrs = [None, None, None, None]
 
     for y_ind, y in enumerate(ys):
-        rect, best_scale, max_corr = multi_scale_template_matching(np.copy(image), y, (0.05, 0.3), 0.05)
+        rect, best_scale, max_corr = multi_scale_template_matching(np.copy(image), y, (0.05, 0.5), 0.05)
         #rects.append(rect)
         add = False
         for i, r_and_c in enumerate(rects_and_corrs):
@@ -106,25 +106,29 @@ def match_nums(image, ths = 0.6):
             rects_and_corrs[i] = (rect, max_corr, y_ind + 1)
                     
                     
-    rects_and_corrs = sorted(rects_and_corrs, key = lambda x: x[0][0][0])
+    rects_and_corrs = sorted(rects_and_corrs, key = lambda x: x[0][0][0] if x is not None else np.inf)
     #print(rects_and_corrs)
-    for r, c, n in rects_and_corrs:
+    for el in rects_and_corrs:
+        if el is None:
+            break
+        r, c, n = el
         cv2.rectangle(image, r[0], r[1], (0, 255, 0), 2)
         cv2.putText(image, f"y-{n}", r[0], cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-    return image, [r[-1] for r in rects_and_corrs]
+    return image, [r[-1] if r is not None else r for r in rects_and_corrs]
 
 
 
 
 #f = "/home/agrobenj/catkin_ws/images/ct5_test1.png" 
-f = "/home/agrobenj/catkin_ws/images/ct5_test1_perspective.png" 
+#f = "/home/agrobenj/catkin_ws/images/ct5_test1_perspective.png" 
+f = "/home/agrobenj/rob498_bag_files/ct5_images/frame_0521.png"
 
 
 image = cv2.imread(f)
-image = cv2.rotate(image, cv2.ROTATE_180)
+image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
 #image = undistort_image(image, K, D)
 h, w = image.shape[:2]
-sf = 0.25
+sf = 1.0
 nw, nh = int(sf * w), int(sf * h)
 image = cv2.resize(image, (nw, nh))
 #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)

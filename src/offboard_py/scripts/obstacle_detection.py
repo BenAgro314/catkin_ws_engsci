@@ -14,7 +14,7 @@ from sensor_msgs.msg import PointCloud2, PointField
 import sensor_msgs.point_cloud2 as pc2
 import time
 
-PUB_IMAGE = False
+PUB_IMAGE = True
 UNDISTORT = False
 
 def undistort_image(img, K, D):
